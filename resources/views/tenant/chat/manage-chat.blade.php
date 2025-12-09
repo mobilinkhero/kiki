@@ -4644,6 +4644,18 @@
 
                     const data = await response.json();
                     console.log('Toggle AI Response Data:', data);
+                    
+                    // Display detailed debug info
+                    if (data.debug_info) {
+                        console.group('🔧 Database Update Details');
+                        console.log('📋 Table:', data.debug_info.table);
+                        console.log('🆔 Contact ID:', data.debug_info.contact_id);
+                        console.log('👤 Contact Name:', data.debug_info.contact_name);
+                        console.log('⚙️ Old AI Status:', data.debug_info.old_value ? '🔴 DISABLED' : '🟢 ENABLED');
+                        console.log('⚙️ New AI Status:', data.debug_info.new_value ? '🔴 DISABLED' : '🟢 ENABLED');
+                        console.log('🕐 Updated At:', data.debug_info.updated_at);
+                        console.groupEnd();
+                    }
 
                     if (data.success) {
                         // Update userInfo

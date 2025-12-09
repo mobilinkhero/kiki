@@ -1043,9 +1043,27 @@ class ManageChat extends Controller
 
             $contact = Contact::fromTenant($this->tenant_subdomain)->findOrFail($request->contact_id);
 
+            // Get table name
+            $tableName = $this->tenant_subdomain . '_contacts';
+
+            // Store old value for logging
+            $oldStatus = $contact->ai_disabled;
+
             // Toggle AI status
             $newStatus = !$contact->ai_disabled;
             $contact->update(['ai_disabled' => $newStatus]);
+
+            // Log the change
+            \Log::info('AI Toggle for Contact', [
+                'table' => $tableName,
+                'contact_id' => $contact->id,
+                'contact_name' => $contact->firstname . ' ' . $contact->lastname,
+                'contact_phone' => $contact->phone,
+                'old_ai_disabled' => $oldStatus,
+                'new_ai_disabled' => $newStatus,
+                'changed_by' => auth()->user()->name ?? 'Unknown',
+                'changed_at' => now()->toDateTimeString(),
+            ]);
 
             return response()->json([
                 'success' => true,
@@ -1054,12 +1072,31 @@ class ManageChat extends Controller
                     : 'AI enabled for this contact. They will now receive AI responses.',
                 'ai_disabled' => $newStatus,
                 'ai_status' => $newStatus ? 'disabled' : 'enabled',
+                'debug_info' => [
+                    'table' => $tableName,
+                    'contact_id' => $contact->id,
+                    'contact_name' => $contact->firstname . ' ' . $contact->lastname,
+                    'old_value' => $oldStatus,
+                    'new_value' => $newStatus,
+                    'updated_at' => $contact->updated_at->toDateTimeString(),
+                ],
             ]);
         } catch (\Exception $e) {
+            \Log::error('AI Toggle Error', [
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'request' => $request->all(),
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to toggle AI status',
                 'error' => $e->getMessage(),
+                'debug_info' => [
+                    'file' => basename($e->getFile()),
+                    'line' => $e->getLine(),
+                ],
             ], 500);
         }
     }
