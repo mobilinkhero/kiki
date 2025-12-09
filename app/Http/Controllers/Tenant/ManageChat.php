@@ -1067,9 +1067,6 @@ class ManageChat extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => $newStatus
-                    ? 'AI disabled for this contact. They will no longer receive AI responses.'
-                    : 'AI enabled for this contact. They will now receive AI responses.',
                 'ai_disabled' => $newStatus,
                 'ai_status' => $newStatus ? 'disabled' : 'enabled',
                 'debug_info' => [
