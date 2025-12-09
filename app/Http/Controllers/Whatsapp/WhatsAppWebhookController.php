@@ -389,29 +389,12 @@ class WhatsAppWebhookController extends Controller
                                 ]);
 
 
+
                                 // ✅ CHECK IF AI IS DISABLED FOR THIS CONTACT BEFORE PROCESSING
                                 // This prevents unnecessary OpenAI API calls (saves cost!)
 
-                                // Debug: Log contact data to verify ai_disabled field
-                                EcommerceLogger::info('🔍 DEBUG: Contact AI Status Check', [
-                                    'tenant_id' => $this->tenant_id,
-                                    'contact_id' => $contact_data->id ?? 'no_id',
-                                    'contact_phone' => $contact_number,
-                                    'has_contact_data' => isset($contact_data),
-                                    'ai_disabled_isset' => isset($contact_data->ai_disabled),
-                                    'ai_disabled_value' => $contact_data->ai_disabled ?? 'NOT_SET',
-                                    'ai_disabled_raw' => json_encode($contact_data->ai_disabled ?? null),
-                                ]);
-
                                 if ($contact_data && isset($contact_data->ai_disabled) && $contact_data->ai_disabled) {
-                                    EcommerceLogger::info('🚫 AI DISABLED: Skipping AI processing - Contact has AI turned OFF', [
-                                        'tenant_id' => $this->tenant_id,
-                                        'contact_id' => $contact_data->id,
-                                        'contact_phone' => $contact_number,
-                                        'ai_disabled' => true,
-                                        'cost_saved' => '✅ OpenAI API call skipped - No charges incurred'
-                                    ]);
-
+                                    // AI is disabled - skip processing to save costs
                                     // Do NOT create service or call AI - skip to traditional bots
                                 } else {
                                     // AI is enabled - proceed with AI processing
@@ -2889,13 +2872,6 @@ class WhatsAppWebhookController extends Controller
             if ($result && isset($result['status']) && $result['status']) {
                 // Skip storing message if AI was disabled (don't show empty bubble)
                 if (isset($result['ai_disabled']) && $result['ai_disabled']) {
-                    whatsapp_log('Skipping message storage - AI disabled for contact', 'info', [
-                        'node_id' => $node['id'],
-                        'node_type' => $nodeType,
-                        'contact_id' => $contactData->id ?? 'N/A',
-                        'ai_disabled' => true,
-                    ]);
-
                     return true; // Continue flow without storing message
                 }
 

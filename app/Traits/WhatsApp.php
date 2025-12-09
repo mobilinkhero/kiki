@@ -2145,15 +2145,6 @@ trait WhatsApp
         // ✅ CHECK IF AI IS DISABLED FOR THIS CONTACT
         // Skip ALL AI processing (both Personal Assistant and Custom AI)
         if ($contactData && isset($contactData->ai_disabled) && $contactData->ai_disabled) {
-            whatsapp_log('🚫 AI DISABLED: Skipping flow AI processing for contact', 'info', [
-                'tenant_id' => $this->wa_tenant_id,
-                'contact_id' => $contactData->id,
-                'contact_phone' => $to,
-                'ai_disabled' => true,
-                'cost_saved' => '✅ OpenAI API call skipped - No charges incurred',
-                'flow_node_type' => 'aiAssistant',
-            ]);
-
             // Return success without sending anything - flow will continue to next node
             return [
                 'status' => true,
