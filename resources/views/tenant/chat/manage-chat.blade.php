@@ -4616,6 +4616,11 @@
                     return;
                 }
 
+                // Initialize aiToggling if it doesn't exist
+                if (typeof this.aiToggling === 'undefined') {
+                    this.aiToggling = false;
+                }
+                
                 this.aiToggling = true;
 
                 const requestData = {
