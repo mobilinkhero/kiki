@@ -1,0 +1,2 @@
+<p class="mt-1 text-slate-500 dark:text-slate-400"><?php echo e($slot); ?></p>
+<?php /**PATH /home/u108339042/domains/dash.chatvoo.com/public_html/resources/views/components/settings-description.blade.php ENDPATH**/ ?>

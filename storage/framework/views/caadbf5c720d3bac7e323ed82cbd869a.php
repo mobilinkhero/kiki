@@ -1,0 +1,3 @@
+<svg class="w-4 h-4 text-danger-400 dark:text-danger-500 opacity-60" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true" data-slot="icon">
+  <path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+</svg><?php /**PATH /home/u108339042/domains/dash.chatvoo.com/public_html/storage/framework/views/ee809ebcaf5a63b420460ea2ffc3b01b.blade.php ENDPATH**/ ?>

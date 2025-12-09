@@ -1,0 +1,2 @@
+<span><?php echo $noDataLabel; ?></span>
+<?php /**PATH /home/u108339042/domains/dash.chatvoo.com/public_html/vendor/power-components/livewire-powergrid/src/Providers/../../resources/views/components/table/no-data-label.blade.php ENDPATH**/ ?>

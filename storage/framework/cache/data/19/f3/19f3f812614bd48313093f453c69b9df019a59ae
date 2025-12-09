@@ -1,0 +1,1 @@
+1765283888s:329:"O:26:"App\Settings\EmailSettings":8:{s:6:"mailer";s:4:"smtp";s:9:"smtp_port";s:3:"587";s:13:"smtp_username";s:19:"support@chatvoo.com";s:13:"smtp_password";s:10:"$Hani786@@";s:15:"smtp_encryption";s:3:"TLS";s:11:"sender_name";s:8:"Chatvoo ";s:12:"sender_email";s:19:"support@chatvoo.com";s:9:"smtp_host";s:16:"mail.chatvoo.com";}";

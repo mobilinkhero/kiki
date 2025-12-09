@@ -1,0 +1,3 @@
+<svg x-show="view === 'kanban'" x-cloak="1" class="w-5 h-5 text-white dark:text-gray-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true" data-slot="icon">
+  <path stroke-linecap="round" stroke-linejoin="round" d="M9 4.5v15m6-15v15m-10.875 0h15.75c.621 0 1.125-.504 1.125-1.125V5.625c0-.621-.504-1.125-1.125-1.125H4.125C3.504 4.5 3 5.004 3 5.625v12.75c0 .621.504 1.125 1.125 1.125Z"/>
+</svg><?php /**PATH /home/u108339042/domains/dash.chatvoo.com/public_html/storage/framework/views/914b52c0ade3413f117517b9fc32a3ff.blade.php ENDPATH**/ ?>
