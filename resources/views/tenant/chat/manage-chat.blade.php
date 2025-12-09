@@ -351,16 +351,16 @@
                                                         </span>
                                                         <!-- AI Status Badge -->
                                                         <span x-show="(chat.type === 'lead' || chat.type === 'customer')"
-                                                              x-bind:class="chat.ai_disabled ? 
+                                                              x-bind:class="(chat.ai_disabled == 1 || chat.ai_disabled === true) ? 
                                                                 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300' : 
                                                                 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300'"
                                                               class="inline-block ml-1 text-xs font-medium px-1.5 py-0.5 rounded flex items-center gap-0.5"
-                                                              x-bind:title="chat.ai_disabled ? 'AI Disabled' : 'AI Enabled'">
+                                                              x-bind:title="(chat.ai_disabled == 1 || chat.ai_disabled === true) ? 'AI Disabled' : 'AI Enabled'">
                                                             <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                                                                       d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                                                             </svg>
-                                                            <span class="text-[10px]" x-text="chat.ai_disabled ? 'OFF' : 'ON'"></span>
+                                                            <span class="text-[10px]" x-text="(chat.ai_disabled == 1 || chat.ai_disabled === true) ? 'OFF' : 'ON'"></span>
                                                             <!-- Debug: log AI status on click -->
                                                             <script>console.log('Chat AI Status:', {name: '{{ addslashes($chats[0]->firstname ?? 'N/A') }}', ai_disabled: @json($chats[0]->ai_disabled ?? null), type: typeof @json($chats[0]->ai_disabled ?? null)});</script>
                                                         </span>
