@@ -240,7 +240,7 @@ trait WhatsApp
                 }
 
                 $data = $response->json('data');
-                
+
                 // If no templates found, that's OK - not an error
                 // User might not have created any templates yet
                 if (!$data) {
@@ -2131,7 +2131,6 @@ trait WhatsApp
             'contact_id' => $contactData->id ?? 'N/A',
             'tenant_id' => $this->wa_tenant_id,
             'node_data_keys' => array_keys($nodeData),
-            'has_output' => isset($nodeData['output']),
             'output_count' => isset($nodeData['output']) ? count($nodeData['output']) : 0,
         ]);
 
@@ -2142,6 +2141,27 @@ trait WhatsApp
             'contact_id' => $contactData->id ?? 'N/A',
             'tenant_id' => $this->wa_tenant_id,
         ]);
+
+        // ✅ CHECK IF AI IS DISABLED FOR THIS CONTACT
+        // Skip ALL AI processing (both Personal Assistant and Custom AI)
+        if ($contactData && isset($contactData->ai_disabled) && $contactData->ai_disabled) {
+            whatsapp_log('🚫 AI DISABLED: Skipping flow AI processing for contact', 'info', [
+                'tenant_id' => $this->wa_tenant_id,
+                'contact_id' => $contactData->id,
+                'contact_phone' => $to,
+                'ai_disabled' => true,
+                'cost_saved' => '✅ OpenAI API call skipped - No charges incurred',
+                'flow_node_type' => 'aiAssistant',
+            ]);
+
+            // Return success without sending anything - flow will continue to next node
+            return [
+                'status' => true,
+                'ai_disabled' => true,
+                'message' => 'AI disabled for this contact',
+                'data' => [],
+            ];
+        }
 
         // Prioritize Personal Assistant mode if:
         // 1. Mode is explicitly set to 'personal', OR
