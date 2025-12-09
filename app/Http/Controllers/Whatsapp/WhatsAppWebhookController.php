@@ -388,14 +388,28 @@ class WhatsAppWebhookController extends Controller
                                     'service_class_exists' => class_exists('App\Services\EcommerceOrderService')
                                 ]);
 
-                                $ecommerceService = new EcommerceOrderService($this->tenant_id);
+                                // ✅ CHECK IF AI IS DISABLED FOR THIS CONTACT BEFORE PROCESSING
+                                // This prevents unnecessary OpenAI API calls (saves cost!)
+                                if ($contact_data && isset($contact_data->ai_disabled) && $contact_data->ai_disabled) {
+                                    EcommerceLogger::info('🚫 AI DISABLED: Skipping AI processing - Contact has AI turned OFF', [
+                                        'tenant_id' => $this->tenant_id,
+                                        'contact_id' => $contact_data->id,
+                                        'contact_phone' => $contact_number,
+                                        'ai_disabled' => true,
+                                        'cost_saved' => '✅ OpenAI API call skipped - No charges incurred'
+                                    ]);
+                                    
+                                    // Do NOT create service or call AI - skip to traditional bots
+                                } else {
+                                    // AI is enabled - proceed with AI processing
+                                    $ecommerceService = new EcommerceOrderService($this->tenant_id);
 
                                 EcommerceLogger::info('📞 WEBHOOK: EcommerceOrderService created, calling processMessage', [
                                     'tenant_id' => $this->tenant_id,
                                     'service_created' => isset($ecommerceService),
                                     'message' => $trigger_msg
                                 ]);
-                                $ecommerceResult = $ecommerceService->processMessage($trigger_msg, $contact_data);
+                                    $ecommerceResult = $ecommerceService->processMessage($trigger_msg, $contact_data);
 
                                 EcommerceLogger::info('📞 WEBHOOK: Ecommerce processing completed', [
                                     'tenant_id' => $this->tenant_id,
@@ -534,16 +548,17 @@ class WhatsAppWebhookController extends Controller
                                     // Exit early if e-commerce handled the message
                                     return;
                                 }
-                            } catch (\Exception $e) {
-                                EcommerceLogger::error('E-commerce WhatsApp processing failed', [
-                                    'tenant_id' => $this->tenant_id,
-                                    'phone' => $contact_number,
-                                    'message' => $trigger_msg,
-                                    'exception' => $e->getMessage(),
-                                    'stack_trace' => $e->getTraceAsString()
-                                ]);
-                                // Continue with normal bot processing on e-commerce error
-                            }
+                                } catch (\Exception $e) {
+                                    EcommerceLogger::error('E-commerce WhatsApp processing failed', [
+                                        'tenant_id' => $this->tenant_id,
+                                        'phone' => $contact_number,
+                                        'message' => $trigger_msg,
+                                        'exception' => $e->getMessage(),
+                                        'stack_trace' => $e->getTraceAsString()
+                                    ]);
+                                    // Continue with normal bot processing on e-commerce error
+                                }
+                            } // End of AI enabled check (else block)
                         } else {
                             EcommerceLogger::info('📞 WEBHOOK: Skipping e-commerce processing (not configured/active)', [
                                 'tenant_id' => $this->tenant_id,
