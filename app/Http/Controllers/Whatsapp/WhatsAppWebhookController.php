@@ -388,8 +388,21 @@ class WhatsAppWebhookController extends Controller
                                     'service_class_exists' => class_exists('App\Services\EcommerceOrderService')
                                 ]);
 
+
                                 // ✅ CHECK IF AI IS DISABLED FOR THIS CONTACT BEFORE PROCESSING
                                 // This prevents unnecessary OpenAI API calls (saves cost!)
+
+                                // Debug: Log contact data to verify ai_disabled field
+                                EcommerceLogger::info('🔍 DEBUG: Contact AI Status Check', [
+                                    'tenant_id' => $this->tenant_id,
+                                    'contact_id' => $contact_data->id ?? 'no_id',
+                                    'contact_phone' => $contact_number,
+                                    'has_contact_data' => isset($contact_data),
+                                    'ai_disabled_isset' => isset($contact_data->ai_disabled),
+                                    'ai_disabled_value' => $contact_data->ai_disabled ?? 'NOT_SET',
+                                    'ai_disabled_raw' => json_encode($contact_data->ai_disabled ?? null),
+                                ]);
+
                                 if ($contact_data && isset($contact_data->ai_disabled) && $contact_data->ai_disabled) {
                                     EcommerceLogger::info('🚫 AI DISABLED: Skipping AI processing - Contact has AI turned OFF', [
                                         'tenant_id' => $this->tenant_id,
