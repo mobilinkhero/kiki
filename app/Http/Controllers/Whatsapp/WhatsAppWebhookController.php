@@ -3246,6 +3246,12 @@ class WhatsAppWebhookController extends Controller
                 return $contactHtml;
 
             case 'aiAssistant':
+                // Check if AI was disabled for this contact
+                if (isset($result['ai_disabled']) && $result['ai_disabled']) {
+                    // Return empty - don't show any message when AI is disabled
+                    return '';
+                }
+
                 // Extract AI response from result (stored by sendFlowAiMessage)
                 $aiResponse = $result['ai_response'] ?? null;
 
@@ -3307,6 +3313,12 @@ class WhatsAppWebhookController extends Controller
                 return 'Contact' . (count($contacts) > 1 ? 's' : '') . ' shared (' . count($contacts) . ')';
 
             case 'aiAssistant':
+                // Check if AI was disabled for this contact
+                if (isset($result['ai_disabled']) && $result['ai_disabled']) {
+                    // Return empty - don't show any preview when AI is disabled
+                    return '';
+                }
+
                 // Extract AI response from result
                 $aiResponse = $result['ai_response'] ?? null;
 
