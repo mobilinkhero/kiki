@@ -720,6 +720,7 @@ class ManageChat extends Controller
                 'contact.status_id as contact_status_id',
                 'contact.group_id as contact_groups',
                 'contact.assigned_id as contact_assigned_id',
+                'contact.ai_disabled as ai_disabled',
             ]);
 
         // Order by the latest message time from either the messages table or the chat's time_sent
@@ -789,6 +790,7 @@ class ManageChat extends Controller
                 'contact.status_id as contact_status_id',
                 'contact.group_id as contact_groups',
                 'contact.assigned_id as contact_assigned_id',
+                'contact.ai_disabled as ai_disabled',
             ]);
 
         // Apply filtering logic
