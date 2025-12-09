@@ -4635,9 +4635,16 @@
 
                     if (data.success) {
                         // Update userInfo
-                        this.userInfo.ai_disabled = data.ai_disabled;
+                        if (this.userInfo) {
+                            this.userInfo.ai_disabled = data.ai_disabled;
+                        }
                         
-                        // Update in chats list
+                        // Update selectedUser to sync header display
+                        if (this.selectedUser) {
+                            this.selectedUser.ai_disabled = data.ai_disabled;
+                        }
+                        
+                        // Update in chats list (sidebar display)
                         const chatIndex = this.allChats.findIndex(c => c.id === this.selectedUser.id);
                         if (chatIndex !== -1) {
                             this.allChats[chatIndex].ai_disabled = data.ai_disabled;
