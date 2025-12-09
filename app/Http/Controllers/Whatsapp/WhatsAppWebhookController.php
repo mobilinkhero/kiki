@@ -1135,6 +1135,8 @@ class WhatsAppWebhookController extends Controller
             })
             ->first();
         if ($contact) {
+            // Refresh to ensure we have the latest data including ai_disabled
+            $contact->refresh();
             return $contact;
         }
         if (get_tenant_setting_by_tenant_id('whats-mark', 'auto_lead_enabled', null, $this->tenant_id) && !$this->featureLimitChecker->hasReachedLimit('contacts', Contact::class, [], true, $this->tenant_id)) {
