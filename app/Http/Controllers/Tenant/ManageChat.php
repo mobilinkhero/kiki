@@ -43,7 +43,7 @@ class ManageChat extends Controller
     public function index()
     {
 
-        if (! checkPermission(['tenant.chat.view', 'tenant.chat.read_only'])) {
+        if (!checkPermission(['tenant.chat.view', 'tenant.chat.read_only'])) {
             session()->flash('notification', ['type' => 'danger', 'message' => t('access_denied_note')]);
 
             return redirect()->route('tenant.dashboard');
@@ -63,7 +63,7 @@ class ManageChat extends Controller
             'sources' => Source::all(),
             'languages' => Languages::all(),
             'selectedAgent' => [],
-            'readOnlyPermission' => (! (Auth::user()->is_admin) && checkPermission('tenant.chat.read_only')) ? 0 : 1,
+            'readOnlyPermission' => (!(Auth::user()->is_admin) && checkPermission('tenant.chat.read_only')) ? 0 : 1,
             'user_is_admin' => Auth::user()->is_admin,
             'enable_supportagent' => get_tenant_setting_from_db('whats-mark', 'Only agents can chat'),
             'login_user' => Auth::id(),
@@ -98,7 +98,7 @@ class ManageChat extends Controller
 
         //  $this->reset('mergeFields');
 
-        $mergeFields = json_encode(array_map(fn ($value) => [
+        $mergeFields = json_encode(array_map(fn($value) => [
             'key' => ucfirst($value['name']),
             'value' => $value['key'],
         ], $field));
@@ -122,7 +122,7 @@ class ManageChat extends Controller
             default => 'intiate_chat',
         };
 
-        $path = 'tenant/'.tenant_id().'/'.$directory;
+        $path = 'tenant/' . tenant_id() . '/' . $directory;
 
         // Call storeAs() on the UploadedFile object
         $filename = $file->storeAs(
@@ -176,19 +176,19 @@ class ManageChat extends Controller
 
             $response = $this->sendTemplate($contact->phone, $rel_data, 'Initiate Chat');
 
-            if (! empty($response['status'])) {
+            if (!empty($response['status'])) {
                 $header = parseText($rel_data['rel_type'], 'header', $rel_data);
                 $body = parseText($rel_data['rel_type'], 'body', $rel_data);
                 $footer = parseText($rel_data['rel_type'], 'footer', $rel_data);
 
                 $buttonHtml = '';
-                if (! empty($rel_data['buttons_data']) && is_string($rel_data['buttons_data'])) {
+                if (!empty($rel_data['buttons_data']) && is_string($rel_data['buttons_data'])) {
                     $buttons = json_decode($rel_data['buttons_data']);
                     if (is_array($buttons) || is_object($buttons)) {
                         $buttonHtml = "<div class='flex flex-col mt-2 space-y-2'>";
                         foreach ($buttons as $button) {
                             $buttonHtml .= "<button class='bg-gray-100 text-success-500 px-3 py-2 rounded-lg flex items-center justify-center text-xs space-x-2 w-full
-                        dark:bg-gray-800 dark:text-success-400'>".e($button->text).'</button>';
+                        dark:bg-gray-800 dark:text-success-400'>" . e($button->text) . '</button>';
                         }
                         $buttonHtml .= '</div>';
                     }
@@ -198,24 +198,24 @@ class ManageChat extends Controller
                 $headerData = '';
                 $fileExtensions = get_meta_allowed_extension();
 
-                if (! empty($rel_data['filename'])) {
+                if (!empty($rel_data['filename'])) {
                     $extension = strtolower(pathinfo($rel_data['filename'], PATHINFO_EXTENSION));
-                    $fileType = array_key_first(array_filter($fileExtensions, fn ($data) => in_array('.'.$extension, explode(', ', $data['extension']))));
+                    $fileType = array_key_first(array_filter($fileExtensions, fn($data) => in_array('.' . $extension, explode(', ', $data['extension']))));
 
                     if ($rel_data['header_data_format'] == 'IMAGE' && $fileType == 'image') {
-                        $headerData = "<a href='".asset('storage/'.$rel_data['filename'])."'>
-                        <img src='".asset('storage/'.$rel_data['filename'])."' class='img-responsive rounded-lg object-cover'>
+                        $headerData = "<a href='" . asset('storage/' . $rel_data['filename']) . "'>
+                        <img src='" . asset('storage/' . $rel_data['filename']) . "' class='img-responsive rounded-lg object-cover'>
                         </a>";
                     } elseif ($rel_data['header_data_format'] == 'VIDEO' && $fileType == 'video') {
-                        $headerData = "<a href='".asset('storage/'.$rel_data['filename'])."'>
-                        <video src='".asset('storage/'.$rel_data['filename'])."' class='rounded-lg object-cover' controls>
+                        $headerData = "<a href='" . asset('storage/' . $rel_data['filename']) . "'>
+                        <video src='" . asset('storage/' . $rel_data['filename']) . "' class='rounded-lg object-cover' controls>
                         </a>";
                     } elseif ($rel_data['header_data_format'] == 'DOCUMENT') {
-                        $headerData = "<a href='".asset('storage/'.$rel_data['filename'])."' target='_blank' class='btn btn-secondary w-full'>".t('document').'</a>';
+                        $headerData = "<a href='" . asset('storage/' . $rel_data['filename']) . "' target='_blank' class='btn btn-secondary w-full'>" . t('document') . '</a>';
                     }
                 }
-                if (empty($headerData) && ($rel_data['header_data_format'] == 'TEXT' || empty($rel_data['header_data_format'])) && ! empty($header)) {
-                    $headerData = "<span class='font-bold mb-3'>".nl2br(decodeWhatsAppSigns(e($header))).'</span>';
+                if (empty($headerData) && ($rel_data['header_data_format'] == 'TEXT' || empty($rel_data['header_data_format'])) && !empty($header)) {
+                    $headerData = "<span class='font-bold mb-3'>" . nl2br(decodeWhatsAppSigns(e($header))) . '</span>';
                 }
 
                 // Handle phone format
@@ -233,7 +233,7 @@ class ManageChat extends Controller
                         'receiver_id' => $phone,
                         'wa_no' => get_tenant_setting_from_db('whatsapp', 'wm_default_phone_number'),
                         'wa_no_id' => get_tenant_setting_from_db('whatsapp', 'wm_default_phone_number_id'),
-                        'name' => $contact->firstname.' '.$contact->lastname,
+                        'name' => $contact->firstname . ' ' . $contact->lastname,
                         'last_message' => $body ?? '',
                         'time_sent' => now(),
                         'type' => $contact->type ?? 'guest',
@@ -250,8 +250,8 @@ class ManageChat extends Controller
                     'url' => null,
                     'message' => "
                     $headerData
-                    <p>".nl2br(decodeWhatsAppSigns(e($body ?? '')))."</p>
-                    <span class='text-gray-500 text-sm'>".nl2br(decodeWhatsAppSigns(e($footer ?? '')))."</span>
+                    <p>" . nl2br(decodeWhatsAppSigns(e($body ?? ''))) . "</p>
+                    <span class='text-gray-500 text-sm'>" . nl2br(decodeWhatsAppSigns(e($footer ?? ''))) . "</span>
                     $buttonHtml
                 ",
                     'status' => 'sent',
@@ -269,7 +269,7 @@ class ManageChat extends Controller
                 ]);
                 $pusher_settings = tenant_settings_by_group('pusher', $this->tenant_id);
                 if (
-                    ! empty($pusher_settings['app_key']) && ! empty($pusher_settings['app_secret']) && ! empty($pusher_settings['app_id']) && ! empty($pusher_settings['cluster'])
+                    !empty($pusher_settings['app_key']) && !empty($pusher_settings['app_secret']) && !empty($pusher_settings['app_id']) && !empty($pusher_settings['cluster'])
                 ) {
                     // Use centralized notification method with enhanced metadata
                     \App\Http\Controllers\Whatsapp\WhatsAppWebhookController::triggerChatNotificationStatic($chat_id, $chatMessageId, $this->tenant_id, false);
@@ -278,7 +278,7 @@ class ManageChat extends Controller
 
             return json_encode($response);
         } catch (\Exception $e) {
-            whatsapp_log(t('error_during_template_sending ').$e->getMessage(), 'error', [
+            whatsapp_log(t('error_during_template_sending ') . $e->getMessage(), 'error', [
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
             ], $e);
@@ -299,7 +299,7 @@ class ManageChat extends Controller
         $query = ChatMessage::fromTenant($this->tenant_subdomain)->where('interaction_id', $chatId);
 
         // If lastMessageId is provided, get messages older than this ID
-        if (! empty($lastMessageId)) {
+        if (!empty($lastMessageId)) {
             $query->where('id', '<', $lastMessageId);
         }
 
@@ -307,8 +307,8 @@ class ManageChat extends Controller
             ->take(20)
             ->get()
             ->map(function ($message) {
-                if (! empty($message->url)) {
-                    $message->url = asset('storage/whatsapp-attachments/'.ltrim($message->url, '/'));
+                if (!empty($message->url)) {
+                    $message->url = asset('storage/whatsapp-attachments/' . ltrim($message->url, '/'));
                 }
 
                 return $message;
@@ -335,15 +335,15 @@ class ManageChat extends Controller
      */
     public function removeMessage($subdomain, $messageId)
     {
-        $chatMessage = DB::table($this->tenant_subdomain.'_chat_messages as chat_messages')
-            ->join($this->tenant_subdomain.'_chats as chats', 'chat_messages.interaction_id', '=', 'chats.id')
+        $chatMessage = DB::table($this->tenant_subdomain . '_chat_messages as chat_messages')
+            ->join($this->tenant_subdomain . '_chats as chats', 'chat_messages.interaction_id', '=', 'chats.id')
             ->where('chat_messages.id', $messageId)
 
             ->select('chat_messages.id')
             ->first();
 
         if ($chatMessage) {
-            DB::table($this->tenant_subdomain.'_chat_messages')->where('id', $messageId)->delete();
+            DB::table($this->tenant_subdomain . '_chat_messages')->where('id', $messageId)->delete();
 
             return response()->json([
                 'success' => true,
@@ -363,7 +363,7 @@ class ManageChat extends Controller
     public function removeChat($subdomain, $chatId)
     {
 
-        if (! checkPermission('chat.delete')) {
+        if (!checkPermission('chat.delete')) {
             session()->flash('notification', ['type' => 'danger', 'message' => t('access_denied_note')]);
 
             return redirect()->route('admin.dashboard');
@@ -413,7 +413,7 @@ class ManageChat extends Controller
         } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
-                'message' => t('failed_to_assign_agent').$e->getMessage(),
+                'message' => t('failed_to_assign_agent') . $e->getMessage(),
             ]);
         }
     }
@@ -422,7 +422,7 @@ class ManageChat extends Controller
     {
         $type = $request->input('type');
         $contact_id = $request->input('type_Id');
-        if (! empty($contact_id) && $type != 'guest') {
+        if (!empty($contact_id) && $type != 'guest') {
             $contact = Contact::fromTenant($this->tenant_subdomain)
                 ->with(['source:id,name', 'status:id,name,color'])
                 ->where(['type' => $type, 'id' => $contact_id])
@@ -449,7 +449,7 @@ class ManageChat extends Controller
 
         ChatMessage::fromTenant($this->tenant_subdomain)->where('interaction_id', $chatId)->update(['is_read' => 1]);
 
-        if (! $chat) {
+        if (!$chat) {
             return response()->json(['error' => 'Chat not found'], 404);
         }
 
@@ -479,7 +479,7 @@ class ManageChat extends Controller
         if ($users->count() === 1) {
             $user = $users->first();
             $profileImage = $this->getProfileImage($user->avatar);
-            $fullName = e(trim($user->firstname.' '.$user->lastname));
+            $fullName = e(trim($user->firstname . ' ' . $user->lastname));
 
             $layout .= "<img src='{$profileImage}' class='rounded-full h-7 w-7 object-cover ring-1 bg-gray-200 dark:bg-gray-700 cursor-pointer'
                         x-on:click.prevent='openDropdown = !openDropdown' data-tippy-content='{$fullName}'>";
@@ -493,7 +493,7 @@ class ManageChat extends Controller
                     break;
                 }
                 $profileImage = $this->getProfileImage($user->avatar);
-                $fullName = e(trim($user->firstname.' '.$user->lastname));
+                $fullName = e(trim($user->firstname . ' ' . $user->lastname));
 
                 $layout .= "<img src='{$profileImage}' class='rounded-full h-7 w-7 object-cover ring-1 -ml-2 first:ml-0'
                             x-on:click.prevent='openDropdown = !openDropdown' data-tippy-content='{$fullName}'>";
@@ -517,7 +517,7 @@ class ManageChat extends Controller
 
         foreach ($users as $user) {
             $profileImage = $this->getProfileImage($user->avatar);
-            $fullName = e(trim($user->firstname.' '.$user->lastname));
+            $fullName = e(trim($user->firstname . ' ' . $user->lastname));
 
             $layout .= "<div class='flex items-center space-x-2 shrink-0'>
                             <img src='{$profileImage}' class='rounded-full h-8 w-8 object-cover ring-1 text-xs my-2' data-tippy-content='{$fullName}'>
@@ -568,7 +568,7 @@ class ManageChat extends Controller
                 ]);
             }
         } catch (\Throwable $e) {
-            whatsapp_log('Exception in AI response processing: '.$e->getMessage(), 'error', [
+            whatsapp_log('Exception in AI response processing: ' . $e->getMessage(), 'error', [
                 'menu' => $request->input('menu'),
                 'submenu' => $request->input('submenu'),
                 'input_msg' => $request->input('input_msg'),
@@ -589,8 +589,8 @@ class ManageChat extends Controller
     public static function newChatMessage($chat_id, $message_id, $tenant_id)
     {
         $subdomain = tenant_subdomain_by_tenant_id($tenant_id);
-        $chatTableName = $subdomain.'_chats';
-        $messageTableName = $subdomain.'_chat_messages';
+        $chatTableName = $subdomain . '_chats';
+        $messageTableName = $subdomain . '_chat_messages';
 
         // Get chat with unread count
         $chat = Chat::fromTenant($subdomain)
@@ -617,8 +617,8 @@ class ManageChat extends Controller
             ->first();
 
         // Transform message URL if exists
-        if ($message && ! empty($message->url)) {
-            $message->url = asset('storage/whatsapp-attachments/'.ltrim($message->url, '/'));
+        if ($message && !empty($message->url)) {
+            $message->url = asset('storage/whatsapp-attachments/' . ltrim($message->url, '/'));
         }
 
         // Add messages to chat object
@@ -633,7 +633,7 @@ class ManageChat extends Controller
     private function getProfileImage($profileUrl)
     {
         return $profileUrl
-            ? asset('storage/'.$profileUrl)
+            ? asset('storage/' . $profileUrl)
             : asset('img/avatar-agent.svg');
     }
 
@@ -653,8 +653,8 @@ class ManageChat extends Controller
         $chatTable = "{$this->tenant_subdomain}_chats";
         $contactTable = "{$this->tenant_subdomain}_contacts";
 
-        DB::table($chatTable.' as chat')
-            ->join($contactTable.' as contact', 'contact.id', '=', 'chat.type_id')
+        DB::table($chatTable . ' as chat')
+            ->join($contactTable . ' as contact', 'contact.id', '=', 'chat.type_id')
             ->whereIn('chat.type', ['lead', 'customer'])
             ->update([
                 'chat.agent' => DB::raw("
@@ -676,7 +676,7 @@ class ManageChat extends Controller
     {
         $original = str_replace(' ', '_', $file->getClientOriginalName());
 
-        return pathinfo($original, PATHINFO_FILENAME).'_'.time().'.'.$file->extension();
+        return pathinfo($original, PATHINFO_FILENAME) . '_' . time() . '.' . $file->extension();
     }
 
     /**
@@ -685,9 +685,9 @@ class ManageChat extends Controller
     private function getChatsForIndex()
     {
         $subdomain = $this->tenant_subdomain;
-        $chatTable = $subdomain.'_chats';
-        $chatMessageTable = $subdomain.'_chat_messages';
-        $contactTable = $subdomain.'_contacts';
+        $chatTable = $subdomain . '_chats';
+        $chatMessageTable = $subdomain . '_chat_messages';
+        $contactTable = $subdomain . '_contacts';
 
         $query = Chat::fromTenant($subdomain)
             ->select("$chatTable.*")
@@ -727,12 +727,12 @@ class ManageChat extends Controller
 
         $onlyAgentsCanChat = get_tenant_setting_from_db('whats-mark', 'only_agents_can_chat', false);
 
-        if ($onlyAgentsCanChat && ! Auth::user()->is_admin) {
+        if ($onlyAgentsCanChat && !Auth::user()->is_admin) {
             $userId = Auth::id();
 
             $query->where(function ($q) use ($userId) {
                 $q->whereRaw("JSON_EXTRACT(agent, '$.assign_id') = ?", [$userId])
-                    ->orWhereRaw("JSON_CONTAINS(JSON_EXTRACT(agent, '$.agents_id'), ?)", ['"'.$userId.'"']);
+                    ->orWhereRaw("JSON_CONTAINS(JSON_EXTRACT(agent, '$.agents_id'), ?)", ['"' . $userId . '"']);
             });
         }
 
@@ -754,9 +754,9 @@ class ManageChat extends Controller
         $readStatus = $request->input('readStatus', ''); // New read/unread filter
 
         $subdomain = $this->tenant_subdomain;
-        $chatTable = $subdomain.'_chats';
-        $chatMessageTable = $subdomain.'_chat_messages';
-        $contactTable = $subdomain.'_contacts';
+        $chatTable = $subdomain . '_chats';
+        $chatMessageTable = $subdomain . '_chat_messages';
+        $contactTable = $subdomain . '_contacts';
 
         $query = Chat::fromTenant($subdomain)
             ->select("$chatTable.*")
@@ -792,38 +792,38 @@ class ManageChat extends Controller
             ]);
 
         // Apply filtering logic
-        if (! empty($relationType)) {
+        if (!empty($relationType)) {
             $query->where("$chatTable.type", $relationType);
         }
 
         // Apply source filter (only applies to lead/customer chats)
-        if (! empty($sourceId)) {
+        if (!empty($sourceId)) {
             $query->where('contact.source_id', $sourceId)
                 ->whereIn("$chatTable.type", ['lead', 'customer']);
         }
 
         // Apply status filter (only applies to lead/customer chats)
-        if (! empty($statusId)) {
+        if (!empty($statusId)) {
             $query->where('contact.status_id', $statusId)
                 ->whereIn("$chatTable.type", ['lead', 'customer']);
         }
 
         // Apply group filter - groups are stored as JSON array in contact.group_id (only applies to lead/customer chats)
-        if (! empty($groupId)) {
+        if (!empty($groupId)) {
             $query->whereRaw('JSON_CONTAINS(contact.group_id, ?)', [json_encode((int) $groupId)])
                 ->whereIn("$chatTable.type", ['lead', 'customer']);
         }
 
         // Apply agent filter - agents are stored as JSON in chat.agent
-        if (! empty($agentId)) {
+        if (!empty($agentId)) {
             $query->where(function ($q) use ($agentId) {
                 $q->whereRaw("JSON_EXTRACT(agent, '$.assign_id') = ?", [(int) $agentId])
-                    ->orWhereRaw("JSON_CONTAINS(JSON_EXTRACT(agent, '$.agents_id'), ?)", ['"'.(int) $agentId.'"']);
+                    ->orWhereRaw("JSON_CONTAINS(JSON_EXTRACT(agent, '$.agents_id'), ?)", ['"' . (int) $agentId . '"']);
             });
         }
 
         // Apply read/unread filter - based on whether chat has unread messages
-        if (! empty($readStatus)) {
+        if (!empty($readStatus)) {
             if ($readStatus === 'unread') {
                 // Show only chats with unread messages (unreadmessagecount > 0)
                 $query->havingRaw('unreadmessagecount > 0');
@@ -834,7 +834,7 @@ class ManageChat extends Controller
         }
 
         // Handle pagination with lastChatId
-        if (! empty($lastChatId)) {
+        if (!empty($lastChatId)) {
             // For pagination, get chats with messages older than the last chat's last message time
             $lastChat = Chat::fromTenant($subdomain)
                 ->leftJoin(
@@ -863,19 +863,19 @@ class ManageChat extends Controller
         // Apply agent permissions
         $onlyAgentsCanChat = get_tenant_setting_from_db('whats-mark', 'only_agents_can_chat', false);
 
-        if ($onlyAgentsCanChat && ! Auth::user()->is_admin) {
+        if ($onlyAgentsCanChat && !Auth::user()->is_admin) {
             $userId = Auth::id();
 
             $query->where(function ($q) use ($userId) {
                 $q->whereRaw("JSON_EXTRACT(agent, '$.assign_id') = ?", [$userId])
-                    ->orWhereRaw("JSON_CONTAINS(JSON_EXTRACT(agent, '$.agents_id'), ?)", ['"'.$userId.'"']);
+                    ->orWhereRaw("JSON_CONTAINS(JSON_EXTRACT(agent, '$.agents_id'), ?)", ['"' . $userId . '"']);
             });
         }
 
         $chats = $query->take($this->pageSize)->get()->toArray();
 
         // If this is a pagination request, return JSON response
-        if (! empty($lastChatId) || $request->isMethod('post')) {
+        if (!empty($lastChatId) || $request->isMethod('post')) {
             // Include metadata for filtering if this is the initial request (lastChatId = 0)
             $responseData = [
                 'chats' => $chats,
@@ -905,7 +905,7 @@ class ManageChat extends Controller
 
         $request->validate([
             'contact_id' => 'required|integer',
-            'status_id' => 'required|integer|exists:statuses,id,tenant_id,'.$this->tenant_id,
+            'status_id' => 'required|integer|exists:statuses,id,tenant_id,' . $this->tenant_id,
         ]);
 
         try {
@@ -945,12 +945,12 @@ class ManageChat extends Controller
             $request->validate([
                 'contact_id' => 'required|integer',
                 'group_ids' => 'nullable|array',
-                'group_ids.*' => 'integer|exists:groups,id,tenant_id,'.$this->tenant_id,
+                'group_ids.*' => 'integer|exists:groups,id,tenant_id,' . $this->tenant_id,
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Validation failed: '.collect($e->errors())->flatten()->implode(', '),
+                'message' => 'Validation failed: ' . collect($e->errors())->flatten()->implode(', '),
                 'errors' => $e->errors(),
             ], 422);
         }
@@ -991,12 +991,12 @@ class ManageChat extends Controller
         try {
             $request->validate([
                 'contact_id' => 'required|integer',
-                'source_id' => 'required|integer|exists:sources,id,tenant_id,'.$this->tenant_id,
+                'source_id' => 'required|integer|exists:sources,id,tenant_id,' . $this->tenant_id,
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Validation failed: '.collect($e->errors())->flatten()->implode(', '),
+                'message' => 'Validation failed: ' . collect($e->errors())->flatten()->implode(', '),
                 'errors' => $e->errors(),
             ], 422);
         }
@@ -1027,4 +1027,39 @@ class ManageChat extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Toggle AI for a specific contact
+     */
+    public function toggleContactAi(Request $request)
+    {
+        try {
+            $request->validate([
+                'contact_id' => 'required|integer',
+                'chat_id' => 'required|integer',
+            ]);
+
+            $contact = Contact::fromTenant($this->tenant_subdomain)->findOrFail($request->contact_id);
+
+            // Toggle AI status
+            $newStatus = !$contact->ai_disabled;
+            $contact->update(['ai_disabled' => $newStatus]);
+
+            return response()->json([
+                'success' => true,
+                'message' => $newStatus
+                    ? 'AI disabled for this contact. They will no longer receive AI responses.'
+                    : 'AI enabled for this contact. They will now receive AI responses.',
+                'ai_disabled' => $newStatus,
+                'ai_status' => $newStatus ? 'disabled' : 'enabled',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to toggle AI status',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
 }
+

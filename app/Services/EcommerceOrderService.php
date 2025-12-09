@@ -44,6 +44,22 @@ class EcommerceOrderService
         ]);
 
         try {
+            // Check if AI is disabled for this contact
+            if ($contact && $contact->isAiDisabled()) {
+                EcommerceLogger::info('🚫 AI-DISABLED: AI is disabled for this contact', [
+                    'tenant_id' => $this->tenantId,
+                    'contact_id' => $contact->id,
+                    'contact_phone' => $contact->phone,
+                    'message' => $message
+                ]);
+
+                return [
+                    'handled' => false, // Let other handlers process it
+                    'ai_disabled' => true,
+                    'response' => null
+                ];
+            }
+
             if (!$this->config) {
                 EcommerceLogger::error('🔍 PROCESSING: No ecommerce config found', [
                     'tenant_id' => $this->tenantId,
@@ -80,7 +96,7 @@ class EcommerceOrderService
             ]);
 
             $this->currentContact = $contact;
-            
+
             // FORCE AI-ONLY MODE - NO TRADITIONAL FALLBACK
             EcommerceLogger::info('🤖 AI-POWERED MODE: Starting AI processing', [
                 'tenant_id' => $this->tenantId,
@@ -89,11 +105,11 @@ class EcommerceOrderService
                 'openai_api_key_exists' => !empty($this->config->openai_api_key),
                 'model' => $this->config->openai_model ?? 'not_set'
             ]);
-            
+
             try {
                 $aiService = new AdvancedAiEcommerceService($this->tenantId);
                 $aiResult = $aiService->processAdvancedMessage($message, $contact);
-                
+
                 EcommerceLogger::info('🤖 AI-RESPONSE: Received AI result', [
                     'tenant_id' => $this->tenantId,
                     'handled' => $aiResult['handled'] ?? false,
@@ -105,7 +121,7 @@ class EcommerceOrderService
                     'actions_count' => count($aiResult['actions'] ?? []),
                     'full_ai_result' => $aiResult
                 ]);
-                
+
                 if ($aiResult['handled']) {
                     // Execute any AI-generated actions
                     if (!empty($aiResult['actions'])) {
@@ -115,25 +131,25 @@ class EcommerceOrderService
                         ]);
                         $aiService->executeActions($aiResult['actions']);
                     }
-                    
+
                     // Return AI response with buttons if provided
                     $response = [
                         'handled' => true,
                         'response' => $aiResult['response']
                     ];
-                    
+
                     if (!empty($aiResult['buttons'])) {
                         EcommerceLogger::info('🤖 AI-BUTTONS: Adding interactive buttons', [
                             'tenant_id' => $this->tenantId,
                             'buttons' => $aiResult['buttons']
                         ]);
-                        
+
                         $response['message_data'] = [
                             'reply_text' => $aiResult['response'],
                             'bot_header' => 'AI Shopping Assistant',
                             'bot_footer' => 'Powered by AI'
                         ];
-                        
+
                         // Add up to 3 buttons
                         foreach ($aiResult['buttons'] as $index => $button) {
                             if ($index < 3) {
@@ -142,16 +158,16 @@ class EcommerceOrderService
                                 $response['message_data']["button{$buttonNum}"] = $button['text'];
                             }
                         }
-                        
+
                         $response['buttons'] = array_slice($aiResult['buttons'], 0, 3);
                     }
-                    
+
                     EcommerceLogger::info('🤖 AI-SUCCESS: AI processed successfully, returning response', [
                         'tenant_id' => $this->tenantId,
                         'contact_phone' => $contact->phone,
                         'final_response' => $response
                     ]);
-                    
+
                     EcommerceLogger::botInteraction($contact->phone, $message, 'AI processed successfully');
                     return $response;
                 } else {
@@ -162,7 +178,7 @@ class EcommerceOrderService
                         'message' => $message,
                         'ai_response' => $aiResult['response'] ?? 'no_response'
                     ]);
-                    
+
                     return [
                         'handled' => true,
                         'response' => $aiResult['response'] ?? 'I apologize, but I\'m having trouble understanding your request. Please try rephrasing your question or ask about our products.'
@@ -177,13 +193,13 @@ class EcommerceOrderService
                     'error' => $e->getMessage(),
                     'trace' => $e->getTraceAsString()
                 ]);
-                
+
                 return [
                     'handled' => true,
                     'response' => 'I apologize, but I\'m experiencing technical difficulties. Please try again in a moment or contact our support team.'
                 ];
             }
-            
+
         } catch (\Exception $e) {
             EcommerceLogger::error('Error processing message', [
                 'tenant_id' => $this->tenantId,

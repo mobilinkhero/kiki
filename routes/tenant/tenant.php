@@ -70,7 +70,7 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::middleware(['auth', 'senitize.inputs', TenantMiddleware::class, CheckTenantDeleted::class, EnsureEmailIsVerified::class])->group(function () {
-    Route::prefix('/{subdomain}')->as('tenant.')->group(function () {});
+    Route::prefix('/{subdomain}')->as('tenant.')->group(function () { });
 });
 
 Route::middleware(['auth', TenantMiddleware::class, CheckTenantDeleted::class, EnsureEmailIsVerified::class])
@@ -139,7 +139,7 @@ Route::middleware(['auth', TenantMiddleware::class, CheckTenantDeleted::class, E
 
             Route::get('groups', GroupList::class)->name('groups.list');
             // Route::get('groups/{id?}', GroupCreator::class)->name('groups.create');
-
+    
             // Language
             Route::get('/languages', TenantLanguageManager::class)->name('languages');
             Route::get('/languages/{code}/translations', TenantTranslationManager::class)->name('languages.translations');
@@ -256,6 +256,7 @@ Route::middleware(['auth', TenantMiddleware::class, CheckTenantDeleted::class, E
             Route::post('update-contact-status', [ManageChat::class, 'updateContactStatus'])->name('update_contact_status');
             Route::post('update-contact-groups', [ManageChat::class, 'updateContactGroups'])->name('update_contact_groups');
             Route::post('update-contact-source', [ManageChat::class, 'updateContactSource'])->name('update_contact_source');
+            Route::post('toggle-contact-ai', [ManageChat::class, 'toggleContactAi'])->name('toggle_contact_ai');
 
             // Vue Flow
             Route::get('/bot-flow-list', FlowList::class)->name('bot-flow_list');

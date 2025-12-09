@@ -88,6 +88,7 @@ class Contact extends BaseModel
         'tenant_id' => 'int',
         'country_id' => 'int',
         'is_enabled' => 'bool',
+        'ai_disabled' => 'bool',
         'addedfrom' => 'int',
         'dateassigned' => 'datetime',
         'last_status_change' => 'datetime',
@@ -114,6 +115,7 @@ class Contact extends BaseModel
         'website',
         'phone',
         'is_enabled',
+        'ai_disabled',
         'addedfrom',
         'dateassigned',
         'last_status_change',
@@ -131,7 +133,7 @@ class Contact extends BaseModel
         parent::__construct($attributes);
 
         if ($subdomain = tenant_subdomain()) {
-            $this->setTable($subdomain.'_contacts');
+            $this->setTable($subdomain . '_contacts');
         }
     }
 
@@ -210,7 +212,7 @@ class Contact extends BaseModel
 
     public static function fromTenant(string $subdomain)
     {
-        return (new static)->setTable($subdomain.'_contacts');
+        return (new static)->setTable($subdomain . '_contacts');
     }
 
     public function getGroupIds(): array
@@ -277,7 +279,7 @@ class Contact extends BaseModel
     public function addToGroup($groupId): void
     {
         $groups = $this->getGroupIds();
-        if (! in_array((int) $groupId, $groups)) {
+        if (!in_array((int) $groupId, $groups)) {
             $groups[] = (int) $groupId;
             $this->setGroupIds($groups);
             $this->save();
@@ -288,7 +290,7 @@ class Contact extends BaseModel
     public function removeFromGroup($groupId): void
     {
         $groups = $this->getGroupIds();
-        $groups = array_filter($groups, fn ($id) => $id != (int) $groupId);
+        $groups = array_filter($groups, fn($id) => $id != (int) $groupId);
         $this->setGroupIds($groups);
         $this->save();
     }
@@ -333,7 +335,7 @@ class Contact extends BaseModel
      */
     public function getCustomFieldValue(string $fieldName, $default = null)
     {
-        if (! $this->custom_fields_data || ! is_array($this->custom_fields_data)) {
+        if (!$this->custom_fields_data || !is_array($this->custom_fields_data)) {
             return $default;
         }
 
@@ -423,7 +425,7 @@ class Contact extends BaseModel
         foreach ($customFields as $field) {
             $value = $customFieldsData[$field->field_name] ?? null;
 
-            if (! $field->validateValue($value)) {
+            if (!$field->validateValue($value)) {
                 $errors[$field->field_name] = "The {$field->field_label} field is invalid.";
             }
         }
@@ -451,7 +453,7 @@ class Contact extends BaseModel
      */
     public function scopeWhereCustomField($query, string $fieldName, $value)
     {
-        return $query->whereJsonContains('custom_fields_data->'.$fieldName, $value);
+        return $query->whereJsonContains('custom_fields_data->' . $fieldName, $value);
     }
 
     /**
@@ -472,4 +474,45 @@ class Contact extends BaseModel
             $q->whereRaw("JSON_SEARCH(custom_fields_data, 'one', ?) IS NOT NULL", ["%{$searchTerm}%"]);
         });
     }
+
+    /**
+     * Check if AI is enabled for this contact
+     */
+    public function isAiEnabled(): bool
+    {
+        return !$this->ai_disabled;
+    }
+
+    /**
+     * Check if AI is disabled for this contact
+     */
+    public function isAiDisabled(): bool
+    {
+        return (bool) $this->ai_disabled;
+    }
+
+    /**
+     * Enable AI for this contact
+     */
+    public function enableAi(): bool
+    {
+        return $this->update(['ai_disabled' => false]);
+    }
+
+    /**
+     * Disable AI for this contact
+     */
+    public function disableAi(): bool
+    {
+        return $this->update(['ai_disabled' => true]);
+    }
+
+    /**
+     * Toggle AI status for this contact
+     */
+    public function toggleAi(): bool
+    {
+        return $this->update(['ai_disabled' => !$this->ai_disabled]);
+    }
 }
+
