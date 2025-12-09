@@ -124,7 +124,7 @@ class WhatsAppWebhookController extends Controller
 
             // Check for message ID
             $message_id = $payload['entry'][0]['changes'][0]['value']['messages'][0]['id'] ?? '';
-            
+
             // 🛑 PROTECTION 1: DROP MESSAGES WITHOUT ID (Likely status updates or system messages)
             if (empty($message_id)) {
                 // Do not process further, just log and exit
@@ -132,16 +132,16 @@ class WhatsAppWebhookController extends Controller
             }
 
             $message_from = $payload['entry'][0]['changes'][0]['value']['messages'][0]['from'] ?? '';
-            
+
             // 🛑 PROTECTION 2: ROBUST LOOP PREVENTION (Normalized numbers)
             // Get business phone number from metadata
             $metadata = $payload['entry'][0]['changes'][0]['value']['metadata'] ?? [];
             $business_phone = $metadata['display_phone_number'] ?? '';
-            
+
             // Normalize numbers (remove all non-digits)
             $norm_business = preg_replace('/\D/', '', $business_phone);
             $norm_sender = preg_replace('/\D/', '', $message_from);
-            
+
             // If sender matches business phone, IT'S A LOOP! Ignore it.
             if (!empty($norm_business) && !empty($norm_sender) && $norm_business === $norm_sender) {
                 return;
@@ -153,19 +153,19 @@ class WhatsAppWebhookController extends Controller
                 return;
             }
 
-            $message_text = $payload['entry'][0]['changes'][0]['value']['messages'][0]['text']['body'] ?? 
-                           $payload['entry'][0]['changes'][0]['value']['messages'][0]['button']['text'] ?? 
-                           $payload['entry'][0]['changes'][0]['value']['messages'][0]['interactive']['button_reply']['title'] ?? 'N/A';
+            $message_text = $payload['entry'][0]['changes'][0]['value']['messages'][0]['text']['body'] ??
+                $payload['entry'][0]['changes'][0]['value']['messages'][0]['button']['text'] ??
+                $payload['entry'][0]['changes'][0]['value']['messages'][0]['interactive']['button_reply']['title'] ?? 'N/A';
 
             // PROTECTION 4: DATABASE LOCK (MySQL Named Lock)
             // Use MySQL's GET_LOCK to handle parallel requests (race conditions)
             // This is the "Database Way" to prevent processing the same message ID twice simultaneously
             $lockKey = 'wa_msg_' . md5($message_id);
-            
+
             // Try to acquire lock (2 second timeout for live server with potential high load)
             // If another process has the lock, this will WAIT up to 2 seconds
             $lockResult = \Illuminate\Support\Facades\DB::select("SELECT GET_LOCK(?, 2) as locked", [$lockKey]);
-            
+
             // Lock result: 1 = acquired, 0 = timeout, NULL = error
             if (!$lockResult[0]->locked || $lockResult[0]->locked != 1) {
                 // Could not get lock - another request is processing this message
@@ -186,13 +186,13 @@ class WhatsAppWebhookController extends Controller
             // CRITICAL FIX: Insert placeholder IMMEDIATELY to block parallel webhooks
             // This prevents race condition during long-running flows (AI calls, etc.)
             $from = $payload['entry'][0]['changes'][0]['value']['messages'][0]['from'] ?? '';
-            
+
             $this->logToDuplicateFile('Checking for existing message before placeholder insert', [
                 'message_id' => $message_id,
                 'from' => $from,
                 'tenant_id' => $this->tenant_id,
             ]);
-            
+
             // Use firstOrCreate to atomically check and insert
             $placeholder = \App\Models\Tenant\ChatMessage::fromTenant($this->tenant_subdoamin)->firstOrCreate(
                 ['message_id' => $message_id, 'tenant_id' => $this->tenant_id],
@@ -207,7 +207,7 @@ class WhatsAppWebhookController extends Controller
                     'updated_at' => now(),
                 ]
             );
-            
+
             // If wasRecentlyCreated is false, this message was already being processed
             if (!$placeholder->wasRecentlyCreated) {
                 $this->logToDuplicateFile('Message already exists - BLOCKING duplicate', [
@@ -217,7 +217,7 @@ class WhatsAppWebhookController extends Controller
                 \Illuminate\Support\Facades\DB::select("SELECT RELEASE_LOCK(?)", [$lockKey]);
                 return;
             }
-            
+
             $this->logToDuplicateFile('Placeholder created successfully - PROCEEDING', [
                 'message_id' => $message_id,
                 'placeholder_id' => $placeholder->id,
@@ -269,7 +269,7 @@ class WhatsAppWebhookController extends Controller
     {
         // Reset flag at start of processing
         $this->ecommerceHandledMessage = false;
-        
+
         if (!empty($message_data['messages'])) {
             $message = reset($message_data['messages']);
             $trigger_msg = isset($message['button']['text']) ? $message['button']['text'] : $message['text']['body'] ?? '';
@@ -398,167 +398,167 @@ class WhatsAppWebhookController extends Controller
                                         'ai_disabled' => true,
                                         'cost_saved' => '✅ OpenAI API call skipped - No charges incurred'
                                     ]);
-                                    
+
                                     // Do NOT create service or call AI - skip to traditional bots
                                 } else {
                                     // AI is enabled - proceed with AI processing
                                     $ecommerceService = new EcommerceOrderService($this->tenant_id);
 
-                                EcommerceLogger::info('📞 WEBHOOK: EcommerceOrderService created, calling processMessage', [
-                                    'tenant_id' => $this->tenant_id,
-                                    'service_created' => isset($ecommerceService),
-                                    'message' => $trigger_msg
-                                ]);
+                                    EcommerceLogger::info('📞 WEBHOOK: EcommerceOrderService created, calling processMessage', [
+                                        'tenant_id' => $this->tenant_id,
+                                        'service_created' => isset($ecommerceService),
+                                        'message' => $trigger_msg
+                                    ]);
                                     $ecommerceResult = $ecommerceService->processMessage($trigger_msg, $contact_data);
 
-                                EcommerceLogger::info('📞 WEBHOOK: Ecommerce processing completed', [
-                                    'tenant_id' => $this->tenant_id,
-                                    'phone' => $contact_number,
-                                    'handled' => $ecommerceResult['handled'] ?? false,
-                                    'has_response' => !empty($ecommerceResult['response']),
-                                    'response_length' => strlen($ecommerceResult['response'] ?? ''),
-                                    'has_buttons' => !empty($ecommerceResult['buttons']),
-                                    'full_result' => $ecommerceResult
-                                ]);
-
-                                if ($ecommerceResult['handled'] && $ecommerceResult['response']) {
-                                    EcommerceLogger::info('📞 WEBHOOK: Preparing to send ecommerce response', [
+                                    EcommerceLogger::info('📞 WEBHOOK: Ecommerce processing completed', [
                                         'tenant_id' => $this->tenant_id,
                                         'phone' => $contact_number,
-                                        'response_preview' => substr($ecommerceResult['response'], 0, 100) . '...'
+                                        'handled' => $ecommerceResult['handled'] ?? false,
+                                        'has_response' => !empty($ecommerceResult['response']),
+                                        'response_length' => strlen($ecommerceResult['response'] ?? ''),
+                                        'has_buttons' => !empty($ecommerceResult['buttons']),
+                                        'full_result' => $ecommerceResult
                                     ]);
 
-                                    EcommerceLogger::botInteraction(
-                                        $contact_number,
-                                        $trigger_msg,
-                                        $ecommerceResult['response'],
-                                        ['source' => 'WhatsApp Webhook']
-                                    );
-
-                                    // Send e-commerce response
-                                    $ecommerceMessage = [
-                                        'type' => 'text',
-                                        'message' => $ecommerceResult['response'],
-                                        'reply_text' => $ecommerceResult['response'],
-                                        'bot_header' => '',
-                                        'bot_footer' => '',
-                                        'rel_type' => $contact_data->type ?? 'lead',
-                                        'rel_id' => $contact_data->id,
-                                        'tenant_id' => $this->tenant_id,
-                                        'sending_count' => 0,
-                                        'filename' => '',
-                                    ];
-
-                                    // Add interactive buttons if provided
-                                    try {
-                                        if (!empty($ecommerceResult['buttons'])) {
-                                            EcommerceLogger::info('Sending message with interactive buttons', [
-                                                'tenant_id' => $this->tenant_id,
-                                                'phone' => $contact_number,
-                                                'buttons_count' => count($ecommerceResult['buttons'])
-                                            ]);
-
-                                            // Create button message using existing WhatsApp trait pattern
-                                            $buttonMessage = [
-                                                'type' => 'text',
-                                                'message' => $ecommerceResult['response'],
-                                                'reply_text' => $ecommerceResult['response'],
-                                                'bot_header' => '',
-                                                'bot_footer' => '',
-                                                'rel_type' => $contact_data->type ?? 'lead',
-                                                'rel_id' => $contact_data->id,
-                                                'tenant_id' => $this->tenant_id,
-                                                'sending_count' => 0,
-                                                'filename' => '',
-                                            ];
-
-                                            // Add up to 3 buttons
-                                            $buttons = array_slice($ecommerceResult['buttons'], 0, 3);
-                                            foreach ($buttons as $index => $button) {
-                                                $buttonNum = $index + 1;
-                                                $buttonMessage["button{$buttonNum}_id"] = $button['id'];
-                                                $buttonMessage["button{$buttonNum}"] = substr($button['text'] ?? $button['title'] ?? 'Button', 0, 20);
-                                            }
-
-                                            EcommerceLogger::info('📞 WEBHOOK: Sending message with buttons', [
-                                                'tenant_id' => $this->tenant_id,
-                                                'phone' => $contact_number,
-                                                'message_data' => $buttonMessage
-                                            ]);
-
-                                            $response = $this->setWaTenantId($this->tenant_id)->sendMessage($contact_number, $buttonMessage, $metadata['phone_number_id']);
-
-                                            EcommerceLogger::info('📞 WEBHOOK: Message with buttons sent', [
-                                                'tenant_id' => $this->tenant_id,
-                                                'phone' => $contact_number,
-                                                'response' => $response
-                                            ]);
-                                        } else {
-                                            EcommerceLogger::info('📞 WEBHOOK: Sending message without buttons', [
-                                                'tenant_id' => $this->tenant_id,
-                                                'phone' => $contact_number,
-                                                'message_data' => $ecommerceMessage
-                                            ]);
-
-                                            $response = $this->setWaTenantId($this->tenant_id)->sendMessage($contact_number, $ecommerceMessage, $metadata['phone_number_id']);
-
-                                            EcommerceLogger::info('📞 WEBHOOK: Message without buttons sent', [
-                                                'tenant_id' => $this->tenant_id,
-                                                'phone' => $contact_number,
-                                                'response' => $response
-                                            ]);
-                                        }
-
-                                        $chatId = $this->createOrUpdateInteraction(
-                                            $contact_number,
-                                            $message_data['metadata']['display_phone_number'],
-                                            $message_data['metadata']['phone_number_id'],
-                                            $contact_data->firstname . ' ' . $contact_data->lastname,
-                                            '',
-                                            '',
-                                            false
-                                        );
-
-                                        $this->storeBotMessages($ecommerceMessage, $chatId, $contact_data, 'ecommerce_bot', $response);
-                                    } catch (\Exception $sendEx) {
-                                        EcommerceLogger::error('Failed to send e-commerce message', [
+                                    if ($ecommerceResult['handled'] && $ecommerceResult['response']) {
+                                        EcommerceLogger::info('📞 WEBHOOK: Preparing to send ecommerce response', [
                                             'tenant_id' => $this->tenant_id,
                                             'phone' => $contact_number,
-                                            'exception' => $sendEx->getMessage(),
-                                            'trace' => $sendEx->getTraceAsString()
+                                            'response_preview' => substr($ecommerceResult['response'], 0, 100) . '...'
                                         ]);
-                                        throw $sendEx;
+
+                                        EcommerceLogger::botInteraction(
+                                            $contact_number,
+                                            $trigger_msg,
+                                            $ecommerceResult['response'],
+                                            ['source' => 'WhatsApp Webhook']
+                                        );
+
+                                        // Send e-commerce response
+                                        $ecommerceMessage = [
+                                            'type' => 'text',
+                                            'message' => $ecommerceResult['response'],
+                                            'reply_text' => $ecommerceResult['response'],
+                                            'bot_header' => '',
+                                            'bot_footer' => '',
+                                            'rel_type' => $contact_data->type ?? 'lead',
+                                            'rel_id' => $contact_data->id,
+                                            'tenant_id' => $this->tenant_id,
+                                            'sending_count' => 0,
+                                            'filename' => '',
+                                        ];
+
+                                        // Add interactive buttons if provided
+                                        try {
+                                            if (!empty($ecommerceResult['buttons'])) {
+                                                EcommerceLogger::info('Sending message with interactive buttons', [
+                                                    'tenant_id' => $this->tenant_id,
+                                                    'phone' => $contact_number,
+                                                    'buttons_count' => count($ecommerceResult['buttons'])
+                                                ]);
+
+                                                // Create button message using existing WhatsApp trait pattern
+                                                $buttonMessage = [
+                                                    'type' => 'text',
+                                                    'message' => $ecommerceResult['response'],
+                                                    'reply_text' => $ecommerceResult['response'],
+                                                    'bot_header' => '',
+                                                    'bot_footer' => '',
+                                                    'rel_type' => $contact_data->type ?? 'lead',
+                                                    'rel_id' => $contact_data->id,
+                                                    'tenant_id' => $this->tenant_id,
+                                                    'sending_count' => 0,
+                                                    'filename' => '',
+                                                ];
+
+                                                // Add up to 3 buttons
+                                                $buttons = array_slice($ecommerceResult['buttons'], 0, 3);
+                                                foreach ($buttons as $index => $button) {
+                                                    $buttonNum = $index + 1;
+                                                    $buttonMessage["button{$buttonNum}_id"] = $button['id'];
+                                                    $buttonMessage["button{$buttonNum}"] = substr($button['text'] ?? $button['title'] ?? 'Button', 0, 20);
+                                                }
+
+                                                EcommerceLogger::info('📞 WEBHOOK: Sending message with buttons', [
+                                                    'tenant_id' => $this->tenant_id,
+                                                    'phone' => $contact_number,
+                                                    'message_data' => $buttonMessage
+                                                ]);
+
+                                                $response = $this->setWaTenantId($this->tenant_id)->sendMessage($contact_number, $buttonMessage, $metadata['phone_number_id']);
+
+                                                EcommerceLogger::info('📞 WEBHOOK: Message with buttons sent', [
+                                                    'tenant_id' => $this->tenant_id,
+                                                    'phone' => $contact_number,
+                                                    'response' => $response
+                                                ]);
+                                            } else {
+                                                EcommerceLogger::info('📞 WEBHOOK: Sending message without buttons', [
+                                                    'tenant_id' => $this->tenant_id,
+                                                    'phone' => $contact_number,
+                                                    'message_data' => $ecommerceMessage
+                                                ]);
+
+                                                $response = $this->setWaTenantId($this->tenant_id)->sendMessage($contact_number, $ecommerceMessage, $metadata['phone_number_id']);
+
+                                                EcommerceLogger::info('📞 WEBHOOK: Message without buttons sent', [
+                                                    'tenant_id' => $this->tenant_id,
+                                                    'phone' => $contact_number,
+                                                    'response' => $response
+                                                ]);
+                                            }
+
+                                            $chatId = $this->createOrUpdateInteraction(
+                                                $contact_number,
+                                                $message_data['metadata']['display_phone_number'],
+                                                $message_data['metadata']['phone_number_id'],
+                                                $contact_data->firstname . ' ' . $contact_data->lastname,
+                                                '',
+                                                '',
+                                                false
+                                            );
+
+                                            $this->storeBotMessages($ecommerceMessage, $chatId, $contact_data, 'ecommerce_bot', $response);
+                                        } catch (\Exception $sendEx) {
+                                            EcommerceLogger::error('Failed to send e-commerce message', [
+                                                'tenant_id' => $this->tenant_id,
+                                                'phone' => $contact_number,
+                                                'exception' => $sendEx->getMessage(),
+                                                'trace' => $sendEx->getTraceAsString()
+                                            ]);
+                                            throw $sendEx;
+                                        }
+
+                                        EcommerceLogger::info('E-commerce response sent successfully', [
+                                            'tenant_id' => $this->tenant_id,
+                                            'phone' => $contact_number,
+                                            'response_sent' => true
+                                        ]);
+
+                                        // Mark that e-commerce handled the message
+                                        $this->ecommerceHandledMessage = true;
+
+                                        whatsapp_log('E-commerce handled message, will skip flow processing', 'info', [
+                                            'tenant_id' => $this->tenant_id,
+                                            'phone' => $contact_number,
+                                            'trigger_msg' => $trigger_msg,
+                                        ], null, $this->tenant_id);
+
+                                        // Exit early if e-commerce handled the message
+                                        return;
                                     }
-
-                                    EcommerceLogger::info('E-commerce response sent successfully', [
-                                        'tenant_id' => $this->tenant_id,
-                                        'phone' => $contact_number,
-                                        'response_sent' => true
-                                    ]);
-
-                                    // Mark that e-commerce handled the message
-                                    $this->ecommerceHandledMessage = true;
-                                    
-                                    whatsapp_log('E-commerce handled message, will skip flow processing', 'info', [
-                                        'tenant_id' => $this->tenant_id,
-                                        'phone' => $contact_number,
-                                        'trigger_msg' => $trigger_msg,
-                                    ], null, $this->tenant_id);
-                                    
-                                    // Exit early if e-commerce handled the message
-                                    return;
-                                }
-                                } catch (\Exception $e) {
-                                    EcommerceLogger::error('E-commerce WhatsApp processing failed', [
-                                        'tenant_id' => $this->tenant_id,
-                                        'phone' => $contact_number,
-                                        'message' => $trigger_msg,
-                                        'exception' => $e->getMessage(),
-                                        'stack_trace' => $e->getTraceAsString()
-                                    ]);
-                                    // Continue with normal bot processing on e-commerce error
-                                }
-                            } // End of AI enabled check (else block)
+                                } // End of AI enabled check (else block)
+                            } catch (\Exception $e) {
+                                EcommerceLogger::error('E-commerce WhatsApp processing failed', [
+                                    'tenant_id' => $this->tenant_id,
+                                    'phone' => $contact_number,
+                                    'message' => $trigger_msg,
+                                    'exception' => $e->getMessage(),
+                                    'stack_trace' => $e->getTraceAsString()
+                                ]);
+                                // Continue with normal bot processing on e-commerce error
+                            }
                         } else {
                             EcommerceLogger::info('📞 WEBHOOK: Skipping e-commerce processing (not configured/active)', [
                                 'tenant_id' => $this->tenant_id,
@@ -619,7 +619,7 @@ class WhatsAppWebhookController extends Controller
                             if ($bot_responded) {
                                 break; // Stop if we already sent a response
                             }
-                            
+
                             $template['rel_id'] = $contact_data->id;
                             if (!empty($contact_data->userid)) {
                                 $template['userid'] = $contact_data->userid;
@@ -627,27 +627,27 @@ class WhatsAppWebhookController extends Controller
 
                             // Send template on exact match, contains, or first time
                             if (($template['reply_type'] == 1 && in_array(strtolower($trigger_msg), array_map('trim', array_map('strtolower', explode(',', $template['trigger']))))) || ($template['reply_type'] == 2 && !empty(array_filter(explode(',', $template['trigger']), fn($word) => mb_stripos($trigger_msg, trim($word)) !== false))) || ($template['reply_type'] == 3 && $this->is_first_time) || $template['reply_type'] == 4) {
-                                
+
                                 whatsapp_log('Sending template bot response', 'info', [
                                     'template_id' => $template['id'] ?? 'unknown',
                                     'template_name' => $template['template_name'] ?? 'unknown',
                                     'trigger' => $template['trigger'] ?? '',
                                     'contact_number' => $contact_number,
                                 ], null, $this->tenant_id);
-                                
+
                                 // Use the tenant ID when sending the template
                                 $response = $this->setWaTenantId($this->tenant_id)->sendTemplate($contact_number, $template, 'template_bot', $metadata['phone_number_id']);
 
                                 $chatId = $this->createOrUpdateInteraction($contact_number, $message_data['metadata']['display_phone_number'], $message_data['metadata']['phone_number_id'], $contact_data->firstname . ' ' . $contact_data->lastname, '', '', false);
                                 $chatMessage = $this->storeBotMessages($template, $chatId, $contact_data, 'template_bot', $response);
-                                
+
                                 $bot_responded = true; // Mark local variable
                                 $this->oldBotHasResponded = true; // ✅ Mark class property
-                                
+
                                 whatsapp_log('Template bot response sent - stopping further bot processing', 'info', [
                                     'template_id' => $template['id'] ?? 'unknown',
                                 ], null, $this->tenant_id);
-                                
+
                                 break; // Stop processing more template bots
                             }
                         }
@@ -659,7 +659,7 @@ class WhatsAppWebhookController extends Controller
                                 if ($bot_responded) {
                                     break; // Stop if we already sent a response
                                 }
-                                
+
                                 $message['rel_id'] = $contact_data->id;
                                 if (!empty($contact_data->userid)) {
                                     $message['userid'] = $contact_data->userid;
@@ -680,14 +680,14 @@ class WhatsAppWebhookController extends Controller
 
                                     $chatId = $this->createOrUpdateInteraction($contact_number, $message_data['metadata']['display_phone_number'], $message_data['metadata']['phone_number_id'], $contact_data->firstname . ' ' . $contact_data->lastname, '', '', false);
                                     $chatMessage = $this->storeBotMessages($message, $chatId, $contact_data, '', $response);
-                                    
+
                                     $bot_responded = true; // Mark local variable
                                     $this->oldBotHasResponded = true; // ✅ Mark class property
-                                    
+
                                     whatsapp_log('Message bot response sent - stopping further bot processing', 'info', [
                                         'message_id' => $message['id'] ?? 'unknown',
                                     ], null, $this->tenant_id);
-                                    
+
                                     break; // Stop processing more message bots
                                 }
                             }
@@ -715,7 +715,7 @@ class WhatsAppWebhookController extends Controller
         // Only process flows if e-commerce didn't handle the message AND old bots didn't respond
         // Check class property OR local variable for maximum safety
         $oldBotResponded = $this->oldBotHasResponded || (isset($bot_responded) && $bot_responded === true);
-        
+
         if ($oldBotResponded) {
             whatsapp_log('Skipping flow processing - old message/template bot already responded', 'info', [
                 'tenant_id' => $this->tenant_id,
@@ -735,10 +735,10 @@ class WhatsAppWebhookController extends Controller
                 'old_bot_responded' => $oldBotResponded,
                 'ecommerce_handled' => $this->ecommerceHandledMessage,
             ], null, $this->tenant_id);
-            
+
             $this->processBotFlow($message_data);
         }
-        
+
         // Label for skipping flow processing when e-commerce handled it
         skip_flow_processing:
     }
@@ -1691,7 +1691,7 @@ class WhatsAppWebhookController extends Controller
 
         // Use the new extraction method for both buttons and lists
         $button_id = $this->extractButtonIdFromMessage($message);
-        
+
         $this->logToDuplicateFile('processBotFlow CALLED', [
             'trigger_msg' => $trigger_msg,
             'button_id' => $button_id,
@@ -1878,7 +1878,7 @@ class WhatsAppWebhookController extends Controller
             'ref_message_id' => $refMessageId,
             'is_button_response' => !empty($buttonId),
         ]);
-        
+
         whatsapp_log('Determine flow execution (database-free)', 'info', [
             'trigger_msg' => $triggerMsg,
             'button_id' => $buttonId,
@@ -1912,12 +1912,12 @@ class WhatsAppWebhookController extends Controller
                     $contactNumber,
                     $phoneNumberId
                 );
-                
+
                 // If result is 'no_connection', treat button text as a trigger for other flows
                 if ($result !== 'no_connection') {
                     return $result;
                 }
-                
+
                 whatsapp_log('Button not connected, treating as text trigger', 'info', [
                     'button_id' => $buttonId,
                     'trigger_msg' => $triggerMsg,
@@ -1936,7 +1936,7 @@ class WhatsAppWebhookController extends Controller
             ]);
 
             $flows = BotFlow::where(['is_active' => 1, 'tenant_id' => $this->tenant_id])->get();
-            
+
             $this->logToDuplicateFile('Checking flows for trigger match', [
                 'trigger_msg' => $triggerMsg,
                 'total_active_flows' => $flows->count(),
@@ -1987,12 +1987,12 @@ class WhatsAppWebhookController extends Controller
                             ]);
 
                             $result = $this->executeFlowFromStart($flow, $contactData, $triggerMsg, $chatId, $contactNumber, $phoneNumberId);
-                            
+
                             $this->logToDuplicateFile('Flow execution completed, RETURNING', [
                                 'flow_id' => $flow->id,
                                 'flow_name' => $flow->name ?? 'Unknown',
                             ]);
-                            
+
                             return $result;
                         }
                     }
@@ -2006,19 +2006,19 @@ class WhatsAppWebhookController extends Controller
                     'flow_name' => $fallbackFlow->name ?? 'Unknown',
                     'trigger_node_id' => $fallbackNode['id'],
                 ]);
-                
+
                 whatsapp_log('No specific match, executing fallback flow', 'info', [
                     'flow_id' => $fallbackFlow->id,
                     'trigger_node_id' => $fallbackNode['id'],
                 ]);
 
                 $result = $this->executeFlowFromStart($fallbackFlow, $contactData, $triggerMsg, $chatId, $contactNumber, $phoneNumberId);
-                
+
                 $this->logToDuplicateFile('Flow execution completed, RETURNING (fallback)', [
                     'flow_id' => $fallbackFlow->id,
                     'flow_name' => $fallbackFlow->name ?? 'Unknown',
                 ]);
-                
+
                 return $result;
             }
         }
@@ -2027,7 +2027,7 @@ class WhatsAppWebhookController extends Controller
             'trigger_msg' => $triggerMsg,
             'button_id' => $buttonId,
         ]);
-        
+
         whatsapp_log('No flow execution determined', 'info');
 
         return false;
@@ -2636,13 +2636,13 @@ class WhatsAppWebhookController extends Controller
                 $nodeDetails = array_map(function ($node) {
                     return ['id' => $node['id'], 'type' => $node['type']];
                 }, $connectedNodes);
-                
+
                 $this->logToDuplicateFile('Found connected nodes for trigger', [
                     'trigger_id' => $triggerNode['id'],
                     'connected_count' => count($connectedNodes),
                     'connected_nodes' => $nodeDetails,
                 ]);
-                
+
                 whatsapp_log('Found connected nodes for trigger', 'debug', [
                     'trigger_id' => $triggerNode['id'],
                     'connected_count' => count($connectedNodes),
@@ -2805,7 +2805,7 @@ class WhatsAppWebhookController extends Controller
     {
         $nodeType = $node['type'];
         $nodeData = $node['data'] ?? [];
-        
+
         // Log EVERY node being processed
         $this->logToDuplicateFile('Processing node', [
             'node_id' => $node['id'] ?? 'N/A',
@@ -2820,7 +2820,7 @@ class WhatsAppWebhookController extends Controller
                 'assistant_mode' => $nodeData['assistantMode'] ?? 'unknown',
                 'selected_assistant_id' => $nodeData['selectedAssistantId'] ?? 'N/A',
             ]);
-            
+
             \Log::info('AI Assistant Node - Full Node Data', [
                 'node_id' => $node['id'] ?? 'N/A',
                 'node_type' => $nodeType,
@@ -3233,17 +3233,17 @@ class WhatsAppWebhookController extends Controller
             case 'aiAssistant':
                 // Extract AI response from result (stored by sendFlowAiMessage)
                 $aiResponse = $result['ai_response'] ?? null;
-                
+
                 if ($aiResponse) {
                     return '<p>' . nl2br(decodeWhatsAppSigns(e($aiResponse))) . '</p>';
                 }
-                
+
                 // Fallback: Try to get from output if available
                 $text = $output['reply_text'] ?? '';
                 if ($text) {
                     return '<p>' . nl2br(decodeWhatsAppSigns(e($text))) . '</p>';
                 }
-                
+
                 return '<p class="text-gray-500 italic">AI Assistant response</p>';
 
             default:
@@ -3294,18 +3294,18 @@ class WhatsAppWebhookController extends Controller
             case 'aiAssistant':
                 // Extract AI response from result
                 $aiResponse = $result['ai_response'] ?? null;
-                
+
                 if ($aiResponse) {
                     // Return first 100 chars for preview
                     return strlen($aiResponse) > 100 ? substr($aiResponse, 0, 100) . '...' : $aiResponse;
                 }
-                
+
                 // Fallback: Try to get from output
                 $text = $output['reply_text'] ?? '';
                 if ($text) {
                     return strlen($text) > 100 ? substr($text, 0, 100) . '...' : $text;
                 }
-                
+
                 return 'AI Assistant response';
 
             default:
@@ -3811,21 +3811,21 @@ class WhatsAppWebhookController extends Controller
     {
         $logFile = storage_path('logs/whatsappduplicate.log');
         $timestamp = now()->format('Y-m-d H:i:s.u');
-        
+
         // Format the log entry
         $logEntry = sprintf(
             "[%s] %s\n",
             $timestamp,
             $message
         );
-        
+
         // Add context if provided
         if (!empty($context)) {
             $logEntry .= "Context: " . json_encode($context, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n";
         }
-        
+
         $logEntry .= str_repeat('-', 80) . "\n";
-        
+
         // Append to log file
         file_put_contents($logFile, $logEntry, FILE_APPEND | LOCK_EX);
     }
