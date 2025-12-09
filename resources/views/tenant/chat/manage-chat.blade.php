@@ -4680,18 +4680,18 @@
                             }
                         }
 
-                        // Show success notification
-                        window.showNotification?.(data.message, 'success') || alert(data.message);
+                        // Show success notification (green toast will handle this via Livewire event)
+                        // Don't show alert/modal - already handled by toast notification
                     } else {
                         // Show the actual error from server
-                        const errorMsg = data.error || data.message || 'Failed to toggle AI';
+                        const errorMsg = data.error || 'Failed to toggle AI';
                         console.error('Toggle AI error:', data);
-                        window.showNotification?.(errorMsg, 'error') || alert(errorMsg);
+                        window.showNotification?.(errorMsg, 'error');
                     }
                 } catch (error) {
                     console.error('Error toggling AI:', error);
                     const errorMsg = error.message || 'An error occurred while toggling AI';
-                    window.showNotification?.(errorMsg, 'error') || alert(errorMsg);
+                    window.showNotification?.(errorMsg, 'error');
                 } finally {
                     this.aiToggling = false;
                 }
