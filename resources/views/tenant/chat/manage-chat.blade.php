@@ -4657,9 +4657,13 @@
                         }
                         
                         // Update in chats list (sidebar display)
-                        const chatIndex = this.allChats.findIndex(c => c.id === this.selectedUser.id);
-                        if (chatIndex !== -1) {
-                            this.allChats[chatIndex].ai_disabled = data.ai_disabled;
+                        // Try both possible variable names
+                        const chatsArray = this.allChats || this.chats || [];
+                        if (chatsArray && chatsArray.length > 0) {
+                            const chatIndex = chatsArray.findIndex(c => c.id === this.selectedUser.id);
+                            if (chatIndex !== -1) {
+                                chatsArray[chatIndex].ai_disabled = data.ai_disabled;
+                            }
                         }
 
                         // Show success notification
