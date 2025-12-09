@@ -2887,6 +2887,18 @@ class WhatsAppWebhookController extends Controller
 
             // Check if sending was successful
             if ($result && isset($result['status']) && $result['status']) {
+                // Skip storing message if AI was disabled (don't show empty bubble)
+                if (isset($result['ai_disabled']) && $result['ai_disabled']) {
+                    whatsapp_log('Skipping message storage - AI disabled for contact', 'info', [
+                        'node_id' => $node['id'],
+                        'node_type' => $nodeType,
+                        'contact_id' => $contactData->id ?? 'N/A',
+                        'ai_disabled' => true,
+                    ]);
+
+                    return true; // Continue flow without storing message
+                }
+
                 // Store the message
                 $storeResult = $this->storeFlowMessage($result, $chatId, $contactNumber, $contactData, $nodeType, $nodeData, $context);
 
