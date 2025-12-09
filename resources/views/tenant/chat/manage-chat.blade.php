@@ -4618,6 +4618,18 @@
 
                 this.aiToggling = true;
 
+                const requestData = {
+                    contact_id: this.userInfo.id,
+                    chat_id: this.selectedUser.id
+                };
+                
+                console.log('Toggle AI Request:', {
+                    url: '{{ tenant_route('tenant.toggle_contact_ai') }}',
+                    requestData: requestData,
+                    userInfo: this.userInfo,
+                    selectedUser: this.selectedUser
+                });
+
                 try {
                     const response = await fetch('{{ tenant_route('tenant.toggle_contact_ai') }}', {
                         method: 'POST',
@@ -4625,13 +4637,13 @@
                             'Content-Type': 'application/json',
                             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
                         },
-                        body: JSON.stringify({
-                            contact_id: this.userInfo.id,
-                            chat_id: this.selectedUser.id
-                        })
+                        body: JSON.stringify(requestData)
                     });
 
+                    console.log('Toggle AI Response Status:', response.status, response.statusText);
+
                     const data = await response.json();
+                    console.log('Toggle AI Response Data:', data);
 
                     if (data.success) {
                         // Update userInfo
@@ -4653,11 +4665,15 @@
                         // Show success notification
                         window.showNotification?.(data.message, 'success') || alert(data.message);
                     } else {
-                        window.showNotification?.(data.message || 'Failed to toggle AI', 'error') || alert(data.message || 'Failed to toggle AI');
+                        // Show the actual error from server
+                        const errorMsg = data.error || data.message || 'Failed to toggle AI';
+                        console.error('Toggle AI error:', data);
+                        window.showNotification?.(errorMsg, 'error') || alert(errorMsg);
                     }
                 } catch (error) {
                     console.error('Error toggling AI:', error);
-                    window.showNotification?.('An error occurred while toggling AI', 'error') || alert('An error occurred');
+                    const errorMsg = error.message || 'An error occurred while toggling AI';
+                    window.showNotification?.(errorMsg, 'error') || alert(errorMsg);
                 } finally {
                     this.aiToggling = false;
                 }
