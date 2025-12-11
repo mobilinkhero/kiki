@@ -38,6 +38,7 @@ class PersonalAssistantManager extends Component
     public $max_tokens = 1000;
     public $use_case_tags = [];
     public $file_analysis_enabled = true;
+    public $allow_buttons = false;
 
     protected $rules = [
         'name' => 'required|string|max:255',
@@ -49,6 +50,7 @@ class PersonalAssistantManager extends Component
         'use_case_tags' => 'array|max:5',
         'use_case_tags.*' => 'string|in:faq,product,onboarding,csv,sop,general',
         'file_analysis_enabled' => 'boolean',
+        'allow_buttons' => 'boolean',
         'files.*' => 'file|max:5120|mimes:txt,md,csv,json,pdf,doc,docx', // 5MB max
     ];
 
@@ -114,6 +116,7 @@ class PersonalAssistantManager extends Component
             $this->max_tokens = $this->assistant->max_tokens;
             $this->use_case_tags = $this->assistant->use_case_tags ?? [];
             $this->file_analysis_enabled = $this->assistant->file_analysis_enabled;
+            $this->allow_buttons = $this->assistant->allow_buttons;
         } else {
             $this->resetForm();
         }
@@ -157,6 +160,7 @@ class PersonalAssistantManager extends Component
                 'max_tokens' => $this->max_tokens,
                 'use_case_tags' => $this->use_case_tags,
                 'file_analysis_enabled' => $this->file_analysis_enabled,
+                'allow_buttons' => $this->allow_buttons,
             ];
 
             // Check if we're editing an existing assistant
@@ -329,6 +333,7 @@ class PersonalAssistantManager extends Component
         $this->max_tokens = $assistant->max_tokens;
         $this->use_case_tags = $assistant->use_case_tags ?? [];
         $this->file_analysis_enabled = $assistant->file_analysis_enabled;
+        $this->allow_buttons = $assistant->allow_buttons;
 
         $this->showCreateForm = true;
     }
@@ -686,6 +691,7 @@ class PersonalAssistantManager extends Component
         $this->max_tokens = 1000;
         $this->use_case_tags = [];
         $this->file_analysis_enabled = true;
+        $this->allow_buttons = false;
         $this->files = [];
         $this->editingAssistantId = null;
     }

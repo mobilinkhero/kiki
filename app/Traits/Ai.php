@@ -272,7 +272,9 @@ trait Ai
             $systemContext = $assistant->getFullSystemContext();
 
             // ✅ FEATURE: Inject Button Instructions
-            $systemContext .= "\n\nYou can attach up to 3 interactive buttons to your response using the format: {{BUTTON:Label}}. labels must be short (max 20 chars). Use buttons for choices, confirmations, or next steps. Example: {{BUTTON:Yes}} {{BUTTON:No}}";
+            if ($assistant->allow_buttons) {
+                $systemContext .= "\n\nYou can attach up to 3 interactive buttons to your response using the format: {{BUTTON:Label}}. labels must be short (max 20 chars). Use buttons for choices, confirmations, or next steps. Example: {{BUTTON:Yes}} {{BUTTON:No}}";
+            }
 
             $messages[] = ['role' => 'system', 'content' => $systemContext];
 
@@ -317,7 +319,7 @@ trait Ai
                     ]
                 ];
             } else {
-                $messages[] = ['role' => 'user', 'content' => $message . "\n\n(System Note: You can use {{BUTTON:Label}} format to add up to 3 interactive buttons. Use them for choices/actions.)"];
+                $messages[] = ['role' => 'user', 'content' => $message . ($assistant->allow_buttons ? "\n\n(System Note: You can use {{BUTTON:Label}} format to add up to 3 interactive buttons. Use them for choices/actions. IMPORTANT: If using buttons, keep text BRIEF (under 800 chars) to meet WhatsApp limits.)" : "")];
             }
 
             // Configure chat parameters
@@ -557,7 +559,7 @@ trait Ai
             }
 
             // Step 3: Add current user message to thread
-            $userMessageContent = $message . "\n\n(System Note: You can use {{BUTTON:Label}} format to add up to 3 interactive buttons. Use them for choices/actions.)";
+            $userMessageContent = $message . ($assistant->allow_buttons ? "\n\n(System Note: You can use {{BUTTON:Label}} format to add up to 3 interactive buttons. Use them for choices/actions. IMPORTANT: If using buttons, keep text BRIEF (under 800 chars) to meet WhatsApp limits.)" : "");
             if ($imageUrl) {
                 // ✅ ENHANCEMENT: Context-aware prompt - Forces action over description
                 $aiUserMessage = $message === '[Image]' ? "User sent an image. Analyze it and take the appropriate action based on our conversation context and your instructions. Do not just describe it unless necessary." : $message;
@@ -570,7 +572,7 @@ trait Ai
                     $userMessageContent = [
                         [
                             'type' => 'text',
-                            'text' => $aiUserMessage . "\n\n(System Note: You can use {{BUTTON:Label}} format to add up to 3 interactive buttons. Use them for choices/actions.)"
+                            'text' => $aiUserMessage . ($assistant->allow_buttons ? "\n\n(System Note: You can use {{BUTTON:Label}} format to add up to 3 interactive buttons. Use them for choices/actions. IMPORTANT: If using buttons, keep text BRIEF (under 800 chars) to meet WhatsApp limits.)" : "")
                         ],
                         [
                             'type' => 'image_file',
@@ -609,7 +611,7 @@ trait Ai
             $this->logToFile($logFile, "RUNNING ASSISTANT ON THREAD...");
             $runRequestData = [
                 'assistant_id' => $assistantId,
-                'additional_instructions' => "\nYou can attach up to 3 interactive buttons to your response using the format: {{BUTTON:Label}}. labels must be short (max 20 chars). Use buttons for choices, confirmations, or next steps. Example: {{BUTTON:Buy Basic}} {{BUTTON:More Info}}",
+                'additional_instructions' => ($assistant->allow_buttons ? "\nYou can attach up to 3 interactive buttons to your response using the format: {{BUTTON:Label}}. labels must be short (max 20 chars). Use buttons for choices, confirmations, or next steps. Example: {{BUTTON:Buy Basic}} {{BUTTON:More Info}}" : ""),
             ];
 
             // ✅ AUTO-UPGRADE REMOVED: Respecting user's model setting

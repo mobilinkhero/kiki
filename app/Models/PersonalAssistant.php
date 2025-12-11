@@ -47,6 +47,7 @@ class PersonalAssistant extends Model
         'last_synced_at',
         'openai_assistant_id',
         'openai_vector_store_id',
+        'allow_buttons',
     ];
 
     protected $casts = [
@@ -56,6 +57,7 @@ class PersonalAssistant extends Model
         'is_active' => 'boolean',
         'uploaded_files' => 'array',
         'use_case_tags' => 'array',
+        'allow_buttons' => 'boolean',
     ];
 
     protected $attributes = [
@@ -272,13 +274,13 @@ class PersonalAssistant extends Model
     public function getFilesWithStatus(): array
     {
         $files = $this->uploaded_files ?? [];
-        
+
         // Check file existence for each file
         foreach ($files as &$file) {
             if (isset($file['path'])) {
                 // Use Storage facade for consistent file checking
                 $file['exists'] = Storage::exists($file['path']);
-                
+
                 // Update size if file exists and size is missing or zero
                 if ($file['exists'] && (!isset($file['size']) || $file['size'] === 0)) {
                     $file['size'] = Storage::size($file['path']);
@@ -287,7 +289,7 @@ class PersonalAssistant extends Model
                 $file['exists'] = false;
             }
         }
-        
+
         return $files;
     }
 
