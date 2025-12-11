@@ -953,6 +953,12 @@ trait Ai
             // Remove tags from text, keep optional surrounding whitespace clean up
             $text = preg_replace($pattern, '', $text);
             $text = trim($text);
+
+            // WhatsApp Interactive Message Body Limit is 1024 chars
+            // If text is too long, truncate it to ensure delivery
+            if (strlen($text) > 1000) {
+                $text = mb_substr($text, 0, 997) . '...';
+            }
         }
 
         return ['text' => $text, 'buttons' => $buttons];
