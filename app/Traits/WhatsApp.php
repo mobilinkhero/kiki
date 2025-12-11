@@ -2349,6 +2349,49 @@ trait WhatsApp
             $contactId = $contactData->id ?? null;
             $contactPhone = $to;
 
+            // ✅ AI VISION: Check if user sent an image
+            $imageAnalysis = null;
+            if (isset($context['message_type']) && $context['message_type'] === 'image') {
+                $this->logToAiFile($logFile, "📸 IMAGE DETECTED - Analyzing with AI Vision...");
+
+                $mediaId = $context['media_id'] ?? null;
+                if ($mediaId) {
+                    try {
+                        // Retrieve image URL from WhatsApp
+                        $imageUrl = $this->retrieveUrl($mediaId);
+
+                        $this->logToAiFile($logFile, "IMAGE URL: " . $imageUrl);
+
+                        // Analyze image with AI Vision
+                        $visionService = new \App\Services\AiVisionService($tenantId);
+                        $visionResult = $visionService->analyzeImage(
+                            $imageUrl,
+                            $userMessage,
+                            $assistant,
+                            'auto' // Auto-detect analysis type
+                        );
+
+                        if ($visionResult['success']) {
+                            $imageAnalysis = $visionResult['analysis'];
+
+                            $this->logToAiFile($logFile, "AI VISION ANALYSIS COMPLETED:");
+                            $this->logToAiFile($logFile, "  - Analysis Length: " . strlen($imageAnalysis));
+                            $this->logToAiFile($logFile, "  - Tokens Used: " . ($visionResult['tokens_used'] ?? 0));
+                            $this->logToAiFile($logFile, "  - Analysis Preview: " . substr($imageAnalysis, 0, 200) . "...");
+
+                            // Enhance user message with vision analysis
+                            $userMessage = "[User sent an image]\n\nImage Analysis:\n" . $imageAnalysis . "\n\nUser's message: " . $userMessage;
+
+                        } else {
+                            $this->logToAiFile($logFile, "AI VISION FAILED: " . ($visionResult['error'] ?? 'Unknown error'));
+                        }
+
+                    } catch (\Exception $e) {
+                        $this->logToAiFile($logFile, "IMAGE ANALYSIS ERROR: " . $e->getMessage());
+                    }
+                }
+            }
+
             // ✅ AI HANDOFF DETECTION: Check if user wants to talk to human
             $handoffService = new \App\Services\AiHandoffService();
             $handoffCheck = $handoffService->shouldHandoff($userMessage);
