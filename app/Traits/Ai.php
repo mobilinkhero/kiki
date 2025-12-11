@@ -317,7 +317,7 @@ trait Ai
                     ]
                 ];
             } else {
-                $messages[] = ['role' => 'user', 'content' => $message . "\n\n(System Note: You can use {{BUTTON:Label}} format to add up to 3 interactive buttons. Use them for choices/actions.)"];
+                $messages[] = ['role' => 'user', 'content' => $message . "\n\n(System Note: Keep response concise (under 1000 chars). You can use {{BUTTON:Label}} format to add up to 3 interactive buttons. Use them for choices/actions.)"];
             }
 
             // Configure chat parameters
@@ -557,7 +557,7 @@ trait Ai
             }
 
             // Step 3: Add current user message to thread
-            $userMessageContent = $message . "\n\n(System Note: You can use {{BUTTON:Label}} format to add up to 3 interactive buttons. Use them for choices/actions.)";
+            $userMessageContent = $message . "\n\n(System Note: Keep response concise (under 1000 chars). You can use {{BUTTON:Label}} format to add up to 3 interactive buttons. Use them for choices/actions.)";
             if ($imageUrl) {
                 // ✅ ENHANCEMENT: Context-aware prompt - Forces action over description
                 $aiUserMessage = $message === '[Image]' ? "User sent an image. Analyze it and take the appropriate action based on our conversation context and your instructions. Do not just describe it unless necessary." : $message;
@@ -570,7 +570,7 @@ trait Ai
                     $userMessageContent = [
                         [
                             'type' => 'text',
-                            'text' => $aiUserMessage . "\n\n(System Note: You can use {{BUTTON:Label}} format to add up to 3 interactive buttons. Use them for choices/actions.)"
+                            'text' => $aiUserMessage . "\n\n(System Note: Keep response concise (under 1000 chars). You can use {{BUTTON:Label}} format to add up to 3 interactive buttons. Use them for choices/actions.)"
                         ],
                         [
                             'type' => 'image_file',
