@@ -2491,6 +2491,19 @@ trait WhatsApp
                 'tenant_id' => $this->wa_tenant_id ?? tenant_id() ?? null,
             ];
 
+            // ✅ FEATURE: Add buttons if present from AI response
+            if (!empty($aiResult['buttons']) && is_array($aiResult['buttons'])) {
+                $i = 1;
+                foreach ($aiResult['buttons'] as $btnLabel) {
+                    if ($i > 3)
+                        break;
+                    $messageData["button{$i}_id"] = "ai_btn_" . uniqid();
+                    // Button titles max 20 chars in WhatsApp
+                    $messageData["button{$i}"] = mb_substr($btnLabel, 0, 20);
+                    $i++;
+                }
+            }
+
             $this->logToAiFile($logFile, "SENDING MESSAGE TO USER:");
             $this->logToAiFile($logFile, "  - To: " . $to);
             $this->logToAiFile($logFile, "  - Message: " . $aiResponseText);

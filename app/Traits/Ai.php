@@ -270,6 +270,10 @@ trait Ai
 
             // Add system instructions with knowledge base
             $systemContext = $assistant->getFullSystemContext();
+
+            // ✅ FEATURE: Inject Button Instructions
+            $systemContext .= "\n\nYou can attach up to 3 interactive buttons to your response using the format: {{BUTTON:Label}}.";
+
             $messages[] = ['role' => 'system', 'content' => $systemContext];
 
             $this->logToFile($logFile, "SYSTEM CONTEXT:");
@@ -602,10 +606,10 @@ trait Ai
                         'content' => $userMessageContent,
                     ]);
 
-            // Step 4: Run the assistant on the thread
             $this->logToFile($logFile, "RUNNING ASSISTANT ON THREAD...");
             $runRequestData = [
                 'assistant_id' => $assistantId,
+                'additional_instructions' => "\nYou can attach up to 3 interactive buttons to your response using the format: {{BUTTON:Label}}.",
             ];
 
             // ✅ AUTO-UPGRADE REMOVED: Respecting user's model setting
@@ -704,6 +708,11 @@ trait Ai
             // Convert markdown formatting to WhatsApp formatting
             $formattedResponse = $this->convertMarkdownToWhatsApp($response);
 
+            // ✅ FEATURE: Parse Buttons
+            $parsedResponse = $this->parseAiResponseButtons($formattedResponse);
+            $finalText = $parsedResponse['text'];
+            $buttons = $parsedResponse['buttons'];
+
             // Update conversation record with last activity
             if ($aiConversation) {
                 $aiConversation->update([
@@ -713,7 +722,8 @@ trait Ai
 
             $result = [
                 'status' => true,
-                'message' => $formattedResponse,
+                'message' => $finalText,
+                'buttons' => $buttons, // New field
                 'assistant_name' => $assistant->name,
                 'model_used' => $assistant->model,
                 'tokens_used' => $assistant->max_tokens, // Approximate
@@ -748,7 +758,12 @@ trait Ai
             $chat = new OpenAIChat($config);
 
             $messages = [];
+            $messages = [];
             $systemContext = $assistant->getFullSystemContext();
+
+            // ✅ FEATURE: Inject Button Instructions for Fallback
+            $systemContext .= "\n\nYou can attach up to 3 interactive buttons to your response using the format: {{BUTTON:Label}}.";
+
             $messages[] = ['role' => 'system', 'content' => $systemContext];
 
             if (!empty($conversationHistory)) {
@@ -921,5 +936,25 @@ trait Ai
         }
 
         return null;
+    }
+
+    /**
+     * Parse {{BUTTON:Label}} tags from AI response
+     */
+    protected function parseAiResponseButtons($text)
+    {
+        $buttons = [];
+        $pattern = '/\{\{BUTTON:(.*?)\}\}/';
+
+        if (preg_match_all($pattern, $text, $matches)) {
+            // Get first 3 buttons (WhatsApp limit for reply buttons)
+            $buttons = array_slice($matches[1], 0, 3);
+
+            // Remove tags from text, keep optional surrounding whitespace clean up
+            $text = preg_replace($pattern, '', $text);
+            $text = trim($text);
+        }
+
+        return ['text' => $text, 'buttons' => $buttons];
     }
 }
