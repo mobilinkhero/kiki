@@ -2594,7 +2594,10 @@ trait WhatsApp
                 ]);
 
                 // ✅ AI-POWERED INTELLIGENT HANDOFF: Let AI decide if it needs human help
-                if ($aiResult['status'] && !empty($aiResponseText)) {
+                // Can be disabled by setting ENABLE_AI_AUTO_HANDOFF=false in .env
+                $enableAutoHandoff = env('ENABLE_AI_AUTO_HANDOFF', true);
+
+                if ($aiResult['status'] && !empty($aiResponseText) && $enableAutoHandoff) {
                     $this->logToAiFile($logFile, "🤖 AI SELF-ANALYSIS: Checking if handoff needed...");
 
                     $handoffService = new \App\Services\AiHandoffService();

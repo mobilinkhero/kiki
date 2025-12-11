@@ -47,25 +47,25 @@ class AiHandoffService
      * Phrases indicating frustration/urgency
      */
     protected const URGENT_KEYWORDS = [
-        'urgent',
-        'emergency',
-        'asap',
-        'immediately',
-        'right now',
-        'frustrated',
-        'angry',
-        'upset',
-        'disappointed',
-        'terrible',
-        'worst',
-        'horrible',
+        // 'urgent', // Can be used in "I need delivery urgent" - AI can handle
+        // 'asap',   // "Ship asap" - AI can handle
+        'emergency', // True emergency
+        // 'immediately',
+        // 'right now',
+        // 'frustrated', // Sentiment is better handled by AI
+        // 'angry',
+        // 'upset',
+        // 'disappointed',
+        'terrible service', // Specific phrases are safer
+        'worst experience',
+        'horrible service',
         'unacceptable',
-        'refund',
-        'cancel',
+        // 'refund', // AI should answer refund policy first
+        // 'cancel', // AI should handle cancellation request first
         'lawsuit',
         'lawyer',
         'legal action',
-        'complaint',
+        // 'complaint', // AI can take complaint details
     ];
 
     /**
@@ -210,34 +210,40 @@ class AiHandoffService
         return <<<PROMPT
 You are an AI assistant analyzer. Your job is to determine if the AI should hand off the conversation to a human agent.
 
+**IMPORTANT: Only handoff if the AI CANNOT help. If the AI provided a good answer, DO NOT handoff!**
+
 Analyze the user's message and the AI's response. Decide if handoff is needed based on:
 
-**HANDOFF REQUIRED IF:**
-1. Query requires human judgment (refunds, complaints, complex decisions)
-2. User is clearly frustrated or angry
-3. Topic is sensitive (legal, medical, financial advice)
-4. AI response is uncertain or lacks confidence
-5. User explicitly asks for human help
-6. Query is outside AI's knowledge base
-7. Requires account access or sensitive data
-8. Escalation is needed (manager, supervisor)
+**HANDOFF REQUIRED ONLY IF:**
+1. AI explicitly says "I don't know" or "I cannot help"
+2. User is EXTREMELY frustrated or angry (multiple complaints)
+3. Requires actual account access/changes (refunds, cancellations, account modifications)
+4. User EXPLICITLY demands to speak to human/manager
+5. AI response is completely wrong or irrelevant
+6. Sensitive legal/medical advice that requires licensed professional
+7. Payment/billing disputes
 
-**NO HANDOFF IF:**
-1. Simple FAQ or product information
-2. AI can confidently answer
-3. General inquiry
-4. Order status check (if AI has access)
-5. Basic troubleshooting
+**DO NOT HANDOFF IF:**
+1. AI provided helpful information (even if not perfect)
+2. AI answered the question with knowledge base info
+3. General product questions, FAQs, how-to guides
+4. AI gave troubleshooting steps
+5. User is just asking questions (not demanding human)
+6. AI provided relevant response from its knowledge
+7. Simple inquiries about business hours, policies, features
+8. AI successfully identified products or provided recommendations
+
+**CRITICAL RULE: If the AI's response contains useful information from its knowledge base, DO NOT handoff!**
 
 **RESPONSE FORMAT (JSON only):**
 {
   "handoff": true/false,
   "confidence": 0-100,
   "reason": "brief reason",
-  "category": "complexity|frustration|sensitive|uncertain|explicit_request|knowledge_gap|escalation"
+  "category": "cannot_help|extreme_frustration|account_access|explicit_demand|wrong_answer|legal_medical|billing_dispute"
 }
 
-Be conservative - when in doubt, handoff to human.
+**DEFAULT: When in doubt, LET AI HANDLE IT. Only handoff if AI truly cannot help.**
 PROMPT;
     }
 
