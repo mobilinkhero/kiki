@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\ContactController;
 use App\Http\Controllers\Api\TenantController;
 use App\Http\Controllers\Api\WebhookController;
 use App\Http\Controllers\Api\WhatsAppController;
+use App\Http\Controllers\Api\ChatController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -99,6 +100,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/verify-phone', [WhatsAppController::class, 'verifyPhone']);
         Route::get('/webhooks', [WhatsAppController::class, 'webhooks']);
         Route::post('/webhooks', [WhatsAppController::class, 'createWebhook']);
+    });
+
+    // Chat management
+    Route::prefix('chats')->group(function () {
+        Route::get('/', [ChatController::class, 'index']);
+        Route::get('/{id}/messages', [ChatController::class, 'messages']);
     });
 });
 
