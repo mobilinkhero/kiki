@@ -294,13 +294,16 @@ trait Ai
 
             // Add current user message (with image if provided)
             if ($imageUrl) {
+                // ✅ ENHANCEMENT: If message is just the placeholder, ask for analysis
+                $aiUserMessage = $message === '[Image]' ? "Please analyze this image and describe it or assist me with it." : $message;
+
                 $this->logToFile($logFile, "ADDING IMAGE TO REQUEST: " . substr($imageUrl, 0, 50) . "...");
                 $messages[] = [
                     'role' => 'user',
                     'content' => [
                         [
                             'type' => 'text',
-                            'text' => $message
+                            'text' => $aiUserMessage
                         ],
                         [
                             'type' => 'image_url',
@@ -553,10 +556,13 @@ trait Ai
             // Step 3: Add current user message to thread
             $userMessageContent = $message;
             if ($imageUrl) {
+                // ✅ ENHANCEMENT: If message is just the placeholder, ask for analysis
+                $aiUserMessage = $message === '[Image]' ? "Please analyze this image and describe it or assist me with it." : $message;
+
                 $userMessageContent = [
                     [
                         'type' => 'text',
-                        'text' => $message
+                        'text' => $aiUserMessage
                     ],
                     [
                         'type' => 'image_url',
@@ -718,6 +724,10 @@ trait Ai
             $config = new OpenAIConfig;
             $config->apiKey = $this->getOpenAiKey();
             $config->model = $assistant->model;
+            // ✅ AUTO-UPGRADE: Force Vision-capable model if image is present
+            if ($imageUrl) {
+                $config->model = 'gpt-4o';
+            }
             $config->temperature = $assistant->temperature;
             $config->maxTokens = $assistant->max_tokens;
 
@@ -739,12 +749,15 @@ trait Ai
             }
 
             if ($imageUrl) {
+                // ✅ ENHANCEMENT: If message is just the placeholder, ask for analysis
+                $aiUserMessage = $message === '[Image]' ? "Please analyze this image and describe it or assist me with it." : $message;
+
                 $messages[] = [
                     'role' => 'user',
                     'content' => [
                         [
                             'type' => 'text',
-                            'text' => $message
+                            'text' => $aiUserMessage
                         ],
                         [
                             'type' => 'image_url',
