@@ -65,6 +65,13 @@ class AuthController extends Controller
      */
     public function login(Request $request): JsonResponse
     {
+        if ($request->isMethod('get')) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Login endpoint is ready. Please use POST with email and password to login.',
+            ]);
+        }
+
         $validator = Validator::make($request->all(), [
             'email' => 'required|email',
             'password' => 'required|string',
@@ -79,7 +86,7 @@ class AuthController extends Controller
             ], 422);
         }
 
-        if (! Auth::attempt($request->only('email', 'password'), $request->boolean('remember_me'))) {
+        if (!Auth::attempt($request->only('email', 'password'), $request->boolean('remember_me'))) {
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid credentials',
@@ -162,7 +169,7 @@ class AuthController extends Controller
     {
         // Check if registration is enabled for this tenant
         $tenantSettings = app(TenantSettings::class);
-        if (! $tenantSettings->isRegistrationEnabled) {
+        if (!$tenantSettings->isRegistrationEnabled) {
             return response()->json([
                 'success' => false,
                 'message' => 'Registration is currently disabled for this tenant',
