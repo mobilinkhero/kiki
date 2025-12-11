@@ -2350,48 +2350,101 @@ trait WhatsApp
             $contactId = $contactData->id ?? null;
             $contactPhone = $to;
 
-            // ✅ AI VISION: Check if user sent an image
+            // ✅ AI VISION: Check if user sent an image by querying database
             $imageAnalysis = null;
-            if (isset($context['message_type']) && $context['message_type'] === 'image') {
-                $this->logToAiFile($logFile, "📸 IMAGE DETECTED - Analyzing with AI Vision...");
+            $imageLogFile = storage_path('logs/imageforai.log');
 
-                $mediaId = $context['media_id'] ?? null;
-                if ($mediaId) {
-                    try {
-                        // Retrieve image URL from WhatsApp
-                        $imageUrl = $this->retrieveUrl($mediaId);
+            // Log to dedicated image log file
+            $this->logToAiFile($imageLogFile, "================================================================================");
+            $this->logToAiFile($imageLogFile, "[" . now()->format('Y-m-d H:i:s') . "] IMAGE DETECTION START");
+            $this->logToAiFile($imageLogFile, "Contact Phone: " . $contactPhone);
+            $this->logToAiFile($imageLogFile, "Tenant ID: " . $tenantId);
 
-                        $this->logToAiFile($logFile, "IMAGE URL: " . $imageUrl);
+            try {
+                $subdomain = tenant_subdomain_by_tenant_id($tenantId);
+                $this->logToAiFile($imageLogFile, "Subdomain: " . $subdomain);
 
-                        // Analyze image with AI Vision
-                        $visionService = new \App\Services\AiVisionService($tenantId);
-                        $visionResult = $visionService->analyzeImage(
-                            $imageUrl,
-                            $userMessage,
-                            $assistant,
-                            'auto' // Auto-detect analysis type
-                        );
+                // Query latest message from database
+                $latestMessage = \App\Models\Tenant\ChatMessage::fromTenant($subdomain)
+                    ->where('tenant_id', $tenantId)
+                    ->where('from', $contactPhone)
+                    ->where('type', 'received')
+                    ->orderBy('created_at', 'desc')
+                    ->first();
 
-                        if ($visionResult['success']) {
-                            $imageAnalysis = $visionResult['analysis'];
+                $this->logToAiFile($imageLogFile, "LATEST MESSAGE:");
+                if ($latestMessage) {
+                    $this->logToAiFile($imageLogFile, "  - ID: " . $latestMessage->id);
+                    $this->logToAiFile($imageLogFile, "  - Type: " . ($latestMessage->message_type ?? 'NULL'));
+                    $this->logToAiFile($imageLogFile, "  - Media ID: " . ($latestMessage->media_id ?? 'NULL'));
+                    $this->logToAiFile($imageLogFile, "  - Text: " . ($latestMessage->message ?? 'NULL'));
+                } else {
+                    $this->logToAiFile($imageLogFile, "  - NO MESSAGE FOUND!");
+                }
 
-                            $this->logToAiFile($logFile, "AI VISION ANALYSIS COMPLETED:");
-                            $this->logToAiFile($logFile, "  - Analysis Length: " . strlen($imageAnalysis));
-                            $this->logToAiFile($logFile, "  - Tokens Used: " . ($visionResult['tokens_used'] ?? 0));
-                            $this->logToAiFile($logFile, "  - Analysis Preview: " . substr($imageAnalysis, 0, 200) . "...");
+                if ($latestMessage && $latestMessage->message_type === 'image' && $latestMessage->media_id) {
+                    $this->logToAiFile($imageLogFile, "✅ IMAGE DETECTED!");
+                    $this->logToAiFile($logFile, "📸 IMAGE DETECTED - Analyzing with AI Vision...");
+                    // Retrieve image URL from WhatsApp
+                    $this->logToAiFile($imageLogFile, "Retrieving image URL...");
+                    $imageUrl = $this->retrieveUrl($latestMessage->media_id);
 
-                            // Enhance user message with vision analysis
-                            $userMessage = "[User sent an image]\n\nImage Analysis:\n" . $imageAnalysis . "\n\nUser's message: " . $userMessage;
+                    $this->logToAiFile($imageLogFile, "IMAGE URL: " . $imageUrl);
+                    $this->logToAiFile($logFile, "IMAGE URL: " . $imageUrl);
 
-                        } else {
-                            $this->logToAiFile($logFile, "AI VISION FAILED: " . ($visionResult['error'] ?? 'Unknown error'));
-                        }
+                    // Analyze image with AI Vision
+                    $this->logToAiFile($imageLogFile, "Calling AI Vision Service...");
+                    $visionService = new \App\Services\AiVisionService($tenantId);
+                    $visionResult = $visionService->analyzeImage(
+                        $imageUrl,
+                        $userMessage,
+                        $assistant,
+                        'auto'
+                    );
 
-                    } catch (\Exception $e) {
-                        $this->logToAiFile($logFile, "IMAGE ANALYSIS ERROR: " . $e->getMessage());
+                    $this->logToAiFile($imageLogFile, "AI Vision Result: " . ($visionResult['success'] ? 'SUCCESS' : 'FAILED'));
+
+                    if ($visionResult['success']) {
+                        $imageAnalysis = $visionResult['analysis'];
+
+                        $this->logToAiFile($imageLogFile, "FULL ANALYSIS:");
+                        $this->logToAiFile($imageLogFile, "---");
+                        $this->logToAiFile($imageLogFile, $imageAnalysis);
+                        $this->logToAiFile($imageLogFile, "---");
+                        $this->logToAiFile($imageLogFile, "Tokens Used: " . ($visionResult['tokens_used'] ?? 0));
+
+                        $this->logToAiFile($logFile, "AI VISION ANALYSIS COMPLETED:");
+                        $this->logToAiFile($logFile, "  - Analysis Length: " . strlen($imageAnalysis));
+                        $this->logToAiFile($logFile, "  - Tokens Used: " . ($visionResult['tokens_used'] ?? 0));
+
+                        // Enhance user message with vision analysis
+                        $userMessage = "[User sent an image]\n\nImage Analysis:\n" . $imageAnalysis . "\n\nUser's message: " . $userMessage;
+
+                        $this->logToAiFile($imageLogFile, "ENHANCED MESSAGE:");
+                        $this->logToAiFile($imageLogFile, $userMessage);
+
+                    } else {
+                        $this->logToAiFile($imageLogFile, "ERROR: " . ($visionResult['error'] ?? 'Unknown'));
+                        $this->logToAiFile($logFile, "AI VISION FAILED: " . ($visionResult['error'] ?? 'Unknown error'));
+                    }
+                } else {
+                    $this->logToAiFile($imageLogFile, "❌ NO IMAGE - Reason:");
+                    if (!$latestMessage) {
+                        $this->logToAiFile($imageLogFile, "  - No message found");
+                    } elseif ($latestMessage->message_type !== 'image') {
+                        $this->logToAiFile($imageLogFile, "  - Type is '" . ($latestMessage->message_type ?? 'NULL') . "' not 'image'");
+                    } else {
+                        $this->logToAiFile($imageLogFile, "  - No media_id");
                     }
                 }
+
+            } catch (\Exception $e) {
+                $this->logToAiFile($imageLogFile, "EXCEPTION: " . $e->getMessage());
+                $this->logToAiFile($logFile, "IMAGE ERROR: " . $e->getMessage());
             }
+
+            $this->logToAiFile($imageLogFile, "[" . now()->format('Y-m-d H:i:s') . "] IMAGE DETECTION END");
+            $this->logToAiFile($imageLogFile, "================================================================================\n");
 
             // ✅ AI HANDOFF DETECTION: Check if user wants to talk to human
             $handoffService = new \App\Services\AiHandoffService();
