@@ -2650,13 +2650,19 @@ trait WhatsApp
                             sleep(1);
 
                             // Then send handoff message
+                            $handoffMsg = $handoffResult['message']; // Clean message from service
+
+                            $this->logToAiFile($logFile, "SENDING HANDOFF MESSAGE TO USER: " . $handoffMsg);
+
                             $handoffMessageData = [
                                 'rel_type' => $contactData->type ?? 'guest',
                                 'rel_id' => $contactData->id ?? '',
-                                'reply_text' => $handoffResult['message'] . "\n\n_Reason: " . ($aiHandoffDecision['ai_reasoning'] ?? 'Complex query') . "_",
+                                'reply_text' => $handoffMsg,
                             ];
 
                             $sendResult = $this->sendMessage($to, $handoffMessageData, $phoneNumberId);
+
+                            $this->logToAiFile($logFile, "HANDOFF MESSAGE SENT: " . ($sendResult ? 'Success' : 'Failed'));
 
                             $this->logToAiFile($logFile, "[$timestamp] FLOW AI ASSISTANT NODE - END (AI-INITIATED HANDOFF)");
                             $this->logToAiFile($logFile, "================================================================================\n");
