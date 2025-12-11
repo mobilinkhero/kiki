@@ -43,6 +43,8 @@ class WhatsAppWebhookController extends Controller
 
     protected $oldBotHasResponded = false; // ✅ NEW: Class-level flag to prevent duplicates
 
+    public $currentImageUrl = null; // ✅ NEW: Store image for AI Vision processing
+
     /**
      * Handle incoming WhatsApp webhook requests
      */
@@ -1687,6 +1689,35 @@ class WhatsAppWebhookController extends Controller
         $trigger_msg = $this->extractTriggerMessage($message);
         $ref_message_id = isset($message['context']) ? $message['context']['id'] : null;
 
+        // ✅ HANDLE IMAGE PROCESSING FOR AI VISION
+        $this->currentImageUrl = null;
+        if (isset($message['type']) && $message['type'] === 'image') {
+            try {
+                $mediaId = $message['image']['id'];
+                $caption = $message['image']['caption'] ?? '';
+
+                // Use retrieveUrl from Trait to download image
+                $filename = $this->setWaTenantId($this->tenant_id)->retrieveUrl($mediaId);
+
+                if ($filename) {
+                    $path = storage_path('app/public/whatsapp-attachments/' . $filename);
+                    if (file_exists($path)) {
+                        $type = pathinfo($path, PATHINFO_EXTENSION);
+                        $data = file_get_contents($path);
+                        // Convert to base64 data URI for OpenAI
+                        $this->currentImageUrl = 'data:image/' . $type . ';base64,' . base64_encode($data);
+
+                        whatsapp_log('Image processed for AI Vision', 'info', [
+                            'length' => strlen($this->currentImageUrl),
+                            'caption' => $caption
+                        ]);
+                    }
+                }
+            } catch (\Exception $e) {
+                whatsapp_log('Failed to process image for AI', 'error', ['error' => $e->getMessage()]);
+            }
+        }
+
         // Use the new extraction method for both buttons and lists
         $button_id = $this->extractButtonIdFromMessage($message);
 
@@ -1783,6 +1814,9 @@ class WhatsAppWebhookController extends Controller
             return $message['button']['text'];
         } elseif (isset($message['text']['body'])) {
             return $message['text']['body'];
+        } elseif ($message['type'] === 'image') {
+            // Return caption if available, otherwise a placeholder to trigger the flow
+            return $message['image']['caption'] ?? '[Image]';
         } elseif (!empty($message['interactive'])) {
             if ($message['interactive']['type'] == 'button_reply') {
                 // Return button title instead of ID so AI/flows can understand it

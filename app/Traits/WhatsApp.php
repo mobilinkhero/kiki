@@ -2398,13 +2398,19 @@ trait WhatsApp
                     'contact_phone' => $contactPhone,
                 ]);
 
+                $imageUrl = property_exists($this, 'currentImageUrl') ? $this->currentImageUrl : null;
+                if ($imageUrl) {
+                    $this->logFlowDebug('AI Vision - Passing Image URL', ['length' => strlen($imageUrl)]);
+                }
+
                 $aiResult = $this->personalAssistantResponse(
                     $userMessage,
                     $conversationHistory,
                     $assistant,
                     $contactId,
                     $contactPhone,
-                    $tenantId
+                    $tenantId,
+                    $imageUrl
                 );
 
                 $this->logFlowDebug('AI Assistant - AI Call Completed', [

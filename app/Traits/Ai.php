@@ -161,7 +161,8 @@ trait Ai
         ?PersonalAssistant $assistant = null,
         ?int $contactId = null,
         ?string $contactPhone = null,
-        ?int $tenantId = null
+        ?int $tenantId = null,
+        ?string $imageUrl = null
     ): array {
         $logFile = storage_path('logs/aipersonaldebug.log');
         $timestamp = now()->format('Y-m-d H:i:s');
@@ -232,7 +233,7 @@ trait Ai
             // Check if assistant is synced with OpenAI - use Assistants API if available
             if ($assistant->openai_assistant_id) {
                 $this->logToFile($logFile, "USING OPENAI ASSISTANTS API (Real Assistant)");
-                return $this->useOpenAIAssistantsAPI($assistant, $message, $conversationHistory, $logFile, $timestamp, $contactId, $contactPhone, $tenantId);
+                return $this->useOpenAIAssistantsAPI($assistant, $message, $conversationHistory, $logFile, $timestamp, $contactId, $contactPhone, $tenantId, $imageUrl);
             }
 
             // Fallback to Chat Completions API if not synced
@@ -285,8 +286,27 @@ trait Ai
                 }
             }
 
-            // Add current user message
-            $messages[] = ['role' => 'user', 'content' => $message];
+            // Add current user message (with image if provided)
+            if ($imageUrl) {
+                $this->logToFile($logFile, "ADDING IMAGE TO REQUEST: " . substr($imageUrl, 0, 50) . "...");
+                $messages[] = [
+                    'role' => 'user',
+                    'content' => [
+                        [
+                            'type' => 'text',
+                            'text' => $message
+                        ],
+                        [
+                            'type' => 'image_url',
+                            'image_url' => [
+                                'url' => $imageUrl
+                            ]
+                        ]
+                    ]
+                ];
+            } else {
+                $messages[] = ['role' => 'user', 'content' => $message];
+            }
 
             // Configure chat parameters
             $config->temperature = $assistant->temperature;
@@ -383,7 +403,8 @@ trait Ai
         $timestamp,
         ?int $contactId = null,
         ?string $contactPhone = null,
-        ?int $tenantId = null
+        ?int $tenantId = null,
+        ?string $imageUrl = null
     ): array {
         try {
             // Get tenant ID for API key retrieval
@@ -416,6 +437,9 @@ trait Ai
             $this->logToFile($logFile, "  - Conversation History: " . count($conversationHistory) . " messages");
             $this->logToFile($logFile, "  - Contact ID: " . ($contactId ?? 'N/A'));
             $this->logToFile($logFile, "  - Contact Phone: " . ($contactPhone ?? 'N/A'));
+            if ($imageUrl) {
+                $this->logToFile($logFile, "  - Has Image: Yes");
+            }
 
             // Step 1: Get or create OpenAI thread for this contact
             $threadId = null;
@@ -521,13 +545,29 @@ trait Ai
             }
 
             // Step 3: Add current user message to thread
+            $userMessageContent = $message;
+            if ($imageUrl) {
+                $userMessageContent = [
+                    [
+                        'type' => 'text',
+                        'text' => $message
+                    ],
+                    [
+                        'type' => 'image_url',
+                        'image_url' => [
+                            'url' => $imageUrl
+                        ]
+                    ]
+                ];
+            }
+
             \Illuminate\Support\Facades\Http::withHeaders([
                 'Authorization' => 'Bearer ' . $apiKey,
                 'Content-Type' => 'application/json',
                 'OpenAI-Beta' => 'assistants=v2',
             ])->post("{$baseUrl}/threads/{$threadId}/messages", [
                         'role' => 'user',
-                        'content' => $message,
+                        'content' => $userMessageContent,
                     ]);
 
             // Step 4: Run the assistant on the thread
@@ -686,7 +726,25 @@ trait Ai
                 }
             }
 
-            $messages[] = ['role' => 'user', 'content' => $message];
+            if ($imageUrl) {
+                $messages[] = [
+                    'role' => 'user',
+                    'content' => [
+                        [
+                            'type' => 'text',
+                            'text' => $message
+                        ],
+                        [
+                            'type' => 'image_url',
+                            'image_url' => [
+                                'url' => $imageUrl
+                            ]
+                        ]
+                    ]
+                ];
+            } else {
+                $messages[] = ['role' => 'user', 'content' => $message];
+            }
 
             try {
                 $response = $chat->generateChat($messages);
