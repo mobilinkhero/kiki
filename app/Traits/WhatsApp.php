@@ -2344,6 +2344,12 @@ trait WhatsApp
             // Get the trigger message from context
             $userMessage = $context['trigger_message'] ?? 'Hello';
 
+            // If message is empty but it's an image, provide default text
+            if (empty(trim($userMessage)) && isset($context['message_type']) && $context['message_type'] === 'image') {
+                $userMessage = "What is this?";  // Default question for images
+                $this->logToAiFile($logFile, "EMPTY MESSAGE WITH IMAGE - Using default: " . $userMessage);
+            }
+
             $this->logToAiFile($logFile, "USER MESSAGE FROM CONTEXT: " . $userMessage);
 
             // Get contact information early for handoff detection
