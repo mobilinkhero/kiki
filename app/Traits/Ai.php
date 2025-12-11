@@ -272,7 +272,7 @@ trait Ai
             $systemContext = $assistant->getFullSystemContext();
 
             // ✅ FEATURE: Inject Button Instructions
-            $systemContext .= "\n\nYou can attach up to 3 interactive buttons to your response using the format: {{BUTTON:Label}}.";
+            $systemContext .= "\n\nYou can attach up to 3 interactive buttons to your response using the format: {{BUTTON:Label}}. labels must be short (max 20 chars). Use buttons for choices, confirmations, or next steps. Example: {{BUTTON:Yes}} {{BUTTON:No}}";
 
             $messages[] = ['role' => 'system', 'content' => $systemContext];
 
@@ -609,7 +609,7 @@ trait Ai
             $this->logToFile($logFile, "RUNNING ASSISTANT ON THREAD...");
             $runRequestData = [
                 'assistant_id' => $assistantId,
-                'additional_instructions' => "\nYou can attach up to 3 interactive buttons to your response using the format: {{BUTTON:Label}}.",
+                'additional_instructions' => "\nYou can attach up to 3 interactive buttons to your response using the format: {{BUTTON:Label}}. labels must be short (max 20 chars). Use buttons for choices, confirmations, or next steps. Example: {{BUTTON:Buy Basic}} {{BUTTON:More Info}}",
             ];
 
             // ✅ AUTO-UPGRADE REMOVED: Respecting user's model setting
