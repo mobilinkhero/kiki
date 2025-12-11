@@ -258,11 +258,10 @@ trait Ai
             $config->apiKey = $openAiKey;
             $config->model = $assistant->model;
 
-            // ✅ AUTO-UPGRADE: Force Vision-capable model if image is present
-            if ($imageUrl) {
-                $this->logToFile($logFile, "AUTO-UPGRADE: Switching to gpt-4o to analyze image");
-                $config->model = 'gpt-4o';
-            }
+            $config->model = $assistant->model;
+
+            // Auto-upgrade removed based on user request. 
+            // User must ensure their selected model supports vision if sending images.
 
             $chat = new OpenAIChat($config);
 
@@ -609,11 +608,8 @@ trait Ai
                 'assistant_id' => $assistantId,
             ];
 
-            // ✅ AUTO-UPGRADE: Force Vision-capable model if image is present
-            if ($imageUrl) {
-                $runRequestData['model'] = 'gpt-4o';
-                $this->logToFile($logFile, "  - Overriding model to gpt-4o for Image Analysis");
-            }
+            // ✅ AUTO-UPGRADE REMOVED: Respecting user's model setting
+            // if ($imageUrl) { ... }
 
             // Note: max_completion_tokens is not a valid parameter for Assistants API
             // The max_tokens setting is handled by the model itself
@@ -745,10 +741,7 @@ trait Ai
             $config = new OpenAIConfig;
             $config->apiKey = $this->getOpenAiKey();
             $config->model = $assistant->model;
-            // ✅ AUTO-UPGRADE: Force Vision-capable model if image is present
-            if ($imageUrl) {
-                $config->model = 'gpt-4o';
-            }
+            // ✅ AUTO-UPGRADE REMOVED: Respecting user's model setting
             $config->temperature = $assistant->temperature;
             $config->maxTokens = $assistant->max_tokens;
 
