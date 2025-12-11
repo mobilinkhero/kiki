@@ -51,9 +51,6 @@ class Chat extends BaseModel
         'ai_message_json' => 'json',
         'is_bots_stoped' => 'bool',
         'bot_stoped_time' => 'datetime',
-        'ai_handed_off' => 'bool',
-        'ai_handoff_at' => 'datetime',
-        'agent_notified' => 'bool',
     ];
 
     protected $fillable = [
@@ -73,15 +70,9 @@ class Chat extends BaseModel
         'ai_message_json',
         'is_bots_stoped',
         'bot_stoped_time',
-        'ai_handed_off',
-        'ai_handoff_at',
-        'ai_handoff_reason',
-        'assigned_agent_id',
-        'agent_notified',
         'created_at',
         'updated_at',
     ];
-
 
     public function tenant()
     {
