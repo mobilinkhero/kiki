@@ -45,8 +45,6 @@ class WhatsAppWebhookController extends Controller
 
     protected $flowHasExecuted = false; // ✅ NEW: Prevent duplicate flow execution
 
-    protected $processedNodes = []; // ✅ NEW: Track which nodes have been processed to prevent duplicates
-
     /**
      * Handle incoming WhatsApp webhook requests
      */
@@ -271,10 +269,8 @@ class WhatsAppWebhookController extends Controller
 
     private function processBotSending(array $message_data)
     {
-        // Reset flags at start of processing
+        // Reset flag at start of processing
         $this->ecommerceHandledMessage = false;
-        $this->flowHasExecuted = false; // ✅ Reset flow execution flag for new message
-        $this->processedNodes = []; // ✅ Reset processed nodes tracker for new message
 
         if (!empty($message_data['messages'])) {
             $message = reset($message_data['messages']);
@@ -2832,35 +2828,12 @@ class WhatsAppWebhookController extends Controller
     {
         $nodeType = $node['type'];
         $nodeData = $node['data'] ?? [];
-        $nodeId = $node['id'];
-
-        // ✅ CRITICAL FIX: Check if this node has already been processed
-        if (in_array($nodeId, $this->processedNodes)) {
-            whatsapp_log('⛔ DUPLICATE NODE EXECUTION PREVENTED', 'warning', [
-                'node_id' => $nodeId,
-                'node_type' => $nodeType,
-                'reason' => 'node_already_processed_in_this_request',
-                'processed_nodes_count' => count($this->processedNodes),
-            ]);
-
-            $this->logToDuplicateFile('⛔ SKIPPING DUPLICATE NODE', [
-                'node_id' => $nodeId,
-                'node_type' => $nodeType,
-                'already_processed' => $this->processedNodes,
-            ]);
-
-            return true; // Return success but don't process again
-        }
-
-        // ✅ Mark this node as processed IMMEDIATELY
-        $this->processedNodes[] = $nodeId;
 
         // Log EVERY node being processed
         $this->logToDuplicateFile('Processing node', [
-            'node_id' => $nodeId,
+            'node_id' => $node['id'] ?? 'N/A',
             'node_type' => $nodeType,
             'is_ai_assistant' => ($nodeType === 'aiAssistant'),
-            'processed_nodes_count' => count($this->processedNodes),
         ]);
 
         // Debug: Log full node data for AI Assistant nodes
@@ -2902,17 +2875,6 @@ class WhatsAppWebhookController extends Controller
             }
 
             do_action('before_send_flow_message', ['contact_number' => $contactNumber, 'node_data' => $nodeData, 'node_type' => $nodeType, 'phone_number_id' => $phoneNumberId, 'contact_data' => $contactData, 'context' => $context, 'tenant_id' => $this->tenant_id, 'tenant_subdomain' => $this->tenant_subdoamin]);
-
-            // ✅ DEBUG: Log before sending to track duplicates
-            $executionId = uniqid('exec_');
-            whatsapp_log('🔵 BEFORE sendFlowMessage', 'info', [
-                'execution_id' => $executionId,
-                'node_id' => $node['id'],
-                'node_type' => $nodeType,
-                'to' => $contactNumber,
-                'timestamp' => microtime(true),
-            ]);
-
             // Use the WhatsApp trait methods directly
             $result = $this->sendFlowMessage(
                 $contactNumber,
@@ -2922,14 +2884,6 @@ class WhatsAppWebhookController extends Controller
                 $contactData,
                 $context
             );
-
-            whatsapp_log('🟢 AFTER sendFlowMessage', 'info', [
-                'execution_id' => $executionId,
-                'node_id' => $node['id'],
-                'node_type' => $nodeType,
-                'result_status' => $result['status'] ?? 'unknown',
-                'timestamp' => microtime(true),
-            ]);
 
             whatsapp_log('sendFlowMessage result', 'debug', [
                 'node_id' => $node['id'],
@@ -2990,31 +2944,12 @@ class WhatsAppWebhookController extends Controller
             $nodeMap[$node['id']] = $node;
         }
 
-        // ✅ FIX: Track which nodes we've already added to prevent duplicates
-        $addedNodeIds = [];
-
         // Find all edges that start from the source node
         foreach ($edges as $edge) {
             if ($edge['source'] === $sourceNodeId) {
                 $targetNodeId = $edge['target'];
-
-                // ✅ FIX: Only add each node once, even if multiple edges point to it
-                if (isset($nodeMap[$targetNodeId]) && !in_array($targetNodeId, $addedNodeIds)) {
+                if (isset($nodeMap[$targetNodeId])) {
                     $connectedNodes[] = $nodeMap[$targetNodeId];
-                    $addedNodeIds[] = $targetNodeId; // Mark as added
-
-                    whatsapp_log('Added connected node', 'debug', [
-                        'source_node' => $sourceNodeId,
-                        'target_node' => $targetNodeId,
-                        'node_type' => $nodeMap[$targetNodeId]['type'],
-                    ]);
-                } elseif (in_array($targetNodeId, $addedNodeIds)) {
-                    // Log when we skip a duplicate
-                    whatsapp_log('Skipping duplicate edge to same node', 'warning', [
-                        'source_node' => $sourceNodeId,
-                        'target_node' => $targetNodeId,
-                        'reason' => 'node_already_added',
-                    ]);
                 }
             }
         }
@@ -3936,3 +3871,4 @@ class WhatsAppWebhookController extends Controller
     }
 
 }
+                                                                                           

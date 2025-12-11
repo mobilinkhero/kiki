@@ -1108,41 +1108,7 @@ trait WhatsApp
                     $result = $whatsapp_cloud_api->sendDocument($to, $link_id, $message_data['filename'], $message);
                 }
             } else {
-                $message = $message_data['bot_header'] . "\n" . $message_data['reply_text'] . "\n" . $message_data['bot_footer'];
-
-                // ✅ DEBUG: Log to dedicated file for duplicate message tracking
-                $logFile = storage_path('logs/double_message_issues.log');
-                $timestamp = now()->format('Y-m-d H:i:s.u');
-
-                // Get call stack to see WHERE this is being called from
-                $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 5);
-                $caller = '';
-                foreach ($trace as $t) {
-                    if (isset($t['file']) && isset($t['line'])) {
-                        $caller .= basename($t['file']) . ':' . $t['line'] . ' -> ';
-                    }
-                }
-
-                $logMessage = "\n" . str_repeat('=', 80) . "\n";
-                $logMessage .= "[$timestamp] 📤 SENDING TO WHATSAPP API\n";
-                $logMessage .= str_repeat('=', 80) . "\n";
-                $logMessage .= "To: $to\n";
-                $logMessage .= "Message: " . substr($message, 0, 200) . "\n";
-                $logMessage .= "Call Stack: $caller\n";
-                $logMessage .= str_repeat('-', 80) . "\n";
-
-                file_put_contents($logFile, $logMessage, FILE_APPEND);
-
-                // Send to WhatsApp
                 $result = $whatsapp_cloud_api->sendTextMessage($to, $message, true);
-
-                // Log response
-                $responseLog = "[$timestamp] ✅ WHATSAPP API RESPONSE\n";
-                $responseLog .= "Status Code: " . $result->httpStatusCode() . "\n";
-                $responseLog .= "Response: " . substr($result->body(), 0, 200) . "\n";
-                $responseLog .= str_repeat('=', 80) . "\n\n";
-
-                file_put_contents($logFile, $responseLog, FILE_APPEND);
             }
         }
 
