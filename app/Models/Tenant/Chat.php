@@ -51,6 +51,9 @@ class Chat extends BaseModel
         'ai_message_json' => 'json',
         'is_bots_stoped' => 'bool',
         'bot_stoped_time' => 'datetime',
+        'ai_handed_off' => 'bool',
+        'ai_handoff_at' => 'datetime',
+        'agent_notified' => 'bool',
     ];
 
     protected $fillable = [
@@ -70,9 +73,15 @@ class Chat extends BaseModel
         'ai_message_json',
         'is_bots_stoped',
         'bot_stoped_time',
+        'ai_handed_off',
+        'ai_handoff_at',
+        'ai_handoff_reason',
+        'assigned_agent_id',
+        'agent_notified',
         'created_at',
         'updated_at',
     ];
+
 
     public function tenant()
     {
@@ -81,7 +90,7 @@ class Chat extends BaseModel
 
     public static function fromTenant(string $subdomain)
     {
-        return (new static)->setTable($subdomain.'_chats');
+        return (new static)->setTable($subdomain . '_chats');
     }
 
     public function messages()
@@ -89,7 +98,7 @@ class Chat extends BaseModel
         $subdomain = tenant_subdomain_by_tenant_id($this->tenant_id);
 
         return $this->hasMany(ChatMessage::class, 'interaction_id')
-            ->from($subdomain.'_chat_messages')
+            ->from($subdomain . '_chat_messages')
             ->where('tenant_id', $this->tenant_id);
     }
 }

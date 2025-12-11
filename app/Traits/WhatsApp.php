@@ -2345,9 +2345,64 @@ trait WhatsApp
 
             $this->logToAiFile($logFile, "USER MESSAGE FROM CONTEXT: " . $userMessage);
 
-            // Get contact information for thread persistence
+            // Get contact information early for handoff detection
             $contactId = $contactData->id ?? null;
             $contactPhone = $to;
+
+            // ✅ AI HANDOFF DETECTION: Check if user wants to talk to human
+            $handoffService = new \App\Services\AiHandoffService();
+            $handoffCheck = $handoffService->shouldHandoff($userMessage);
+
+            if ($handoffCheck['should_handoff']) {
+                $this->logToAiFile($logFile, "🚨 HANDOFF DETECTED:");
+                $this->logToAiFile($logFile, "  - Reason: " . $handoffCheck['reason']);
+                $this->logToAiFile($logFile, "  - Keyword: " . $handoffCheck['keyword']);
+                $this->logToAiFile($logFile, "  - Is Urgent: " . ($handoffCheck['is_urgent'] ? 'Yes' : 'No'));
+
+                // Get chat and contact objects
+                $subdomain = tenant_subdomain_by_tenant_id($tenantId);
+                $contact = \App\Models\Tenant\Contact::fromTenant($subdomain)
+                    ->where('id', $contactId)
+                    ->first();
+
+                $chat = \App\Models\Tenant\Chat::fromTenant($subdomain)
+                    ->where('type', $contactData->type ?? 'lead')
+                    ->where('type_id', $contactId)
+                    ->where('tenant_id', $tenantId)
+                    ->first();
+
+                if ($contact && $chat) {
+                    // Execute handoff
+                    $handoffResult = $handoffService->executeHandoff(
+                        $chat,
+                        $contact,
+                        $handoffCheck['reason'],
+                        $handoffCheck['is_urgent'],
+                        $handoffCheck['keyword']
+                    );
+
+                    $this->logToAiFile($logFile, "HANDOFF EXECUTED:");
+                    $this->logToAiFile($logFile, "  - Success: " . ($handoffResult['success'] ? 'Yes' : 'No'));
+                    $this->logToAiFile($logFile, "  - Agent: " . ($handoffResult['agent']->name ?? 'None'));
+                    $this->logToAiFile($logFile, "  - Message: " . $handoffResult['message']);
+
+                    // Send handoff message to user
+                    $messageData = [
+                        'rel_type' => $contactData->type ?? 'guest',
+                        'rel_id' => $contactData->id ?? '',
+                        'reply_text' => $handoffResult['message'],
+                    ];
+
+                    $sendResult = $this->sendMessage($to, $messageData, $phoneNumberId);
+
+                    $this->logToAiFile($logFile, "[$timestamp] FLOW AI ASSISTANT NODE - END (HANDOFF)");
+                    $this->logToAiFile($logFile, "================================================================================\n");
+
+                    return $sendResult;
+                } else {
+                    $this->logToAiFile($logFile, "ERROR: Could not find contact or chat for handoff");
+                }
+            }
             // $tenantId already defined at the top of try block
 
             $this->logToAiFile($logFile, "CONTACT INFO:");
