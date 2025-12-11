@@ -559,18 +559,39 @@ trait Ai
                 // ✅ ENHANCEMENT: If message is just the placeholder, ask for analysis
                 $aiUserMessage = $message === '[Image]' ? "Please analyze this image and describe it or assist me with it." : $message;
 
-                $userMessageContent = [
-                    [
-                        'type' => 'text',
-                        'text' => $aiUserMessage
-                    ],
-                    [
-                        'type' => 'image_url',
-                        'image_url' => [
-                            'url' => $imageUrl
+                // For Assistants API, we should use File ID instead of Base64 URL for reliability
+                $fileId = $this->uploadImageToOpenAI($imageUrl, $apiKey);
+
+                if ($fileId) {
+                    $this->logToFile($logFile, "  - Uploaded image to OpenAI with File ID: " . $fileId);
+                    $userMessageContent = [
+                        [
+                            'type' => 'text',
+                            'text' => $aiUserMessage
+                        ],
+                        [
+                            'type' => 'image_file',
+                            'image_file' => [
+                                'file_id' => $fileId
+                            ]
                         ]
-                    ]
-                ];
+                    ];
+                } else {
+                    // Fallback to image_url with base64 (might fail but worth a try if upload failed)
+                    $this->logToFile($logFile, "  - Image upload failed, falling back to Base64 URL");
+                    $userMessageContent = [
+                        [
+                            'type' => 'text',
+                            'text' => $aiUserMessage
+                        ],
+                        [
+                            'type' => 'image_url',
+                            'image_url' => [
+                                'url' => $imageUrl
+                            ]
+                        ]
+                    ];
+                }
             }
 
             \Illuminate\Support\Facades\Http::withHeaders([
@@ -863,5 +884,49 @@ trait Ai
         $text = preg_replace('/~~(.+?)~~/', '~$1~', $text);
 
         return $text;
+    }
+
+    /**
+     * Upload a Base64 image to OpenAI Files API
+     * Returns the File ID or null
+     */
+    protected function uploadImageToOpenAI($base64Image, $apiKey)
+    {
+        try {
+            // Check if valid base64 string with header
+            if (strpos($base64Image, 'data:') !== 0) {
+                return null;
+            }
+
+            // Parse base64
+            $parts = explode(',', $base64Image);
+            if (count($parts) < 2) {
+                return null;
+            }
+
+            $content = base64_decode($parts[1]);
+            $tempPath = sys_get_temp_dir() . '/ai_upload_' . uniqid() . '.jpg';
+            file_put_contents($tempPath, $content);
+
+            $response = \Illuminate\Support\Facades\Http::withHeaders([
+                'Authorization' => 'Bearer ' . $apiKey,
+            ])->attach('file', fopen($tempPath, 'r'), 'image.jpg')
+                ->post('https://api.openai.com/v1/files', [
+                    'purpose' => 'vision'
+                ]);
+
+            @unlink($tempPath); // Clean up
+
+            if ($response->successful()) {
+                $data = $response->json();
+                return $data['id'] ?? null;
+            } else {
+                whatsapp_log('OpenAI Image Upload Failed', 'error', ['payload' => $response->body()]);
+            }
+        } catch (\Exception $e) {
+            whatsapp_log('OpenAI Image Upload Exception', 'error', ['error' => $e->getMessage()]);
+        }
+
+        return null;
     }
 }
