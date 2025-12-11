@@ -43,6 +43,8 @@ class WhatsAppWebhookController extends Controller
 
     protected $oldBotHasResponded = false; // ✅ NEW: Class-level flag to prevent duplicates
 
+    protected $flowHasExecuted = false; // ✅ NEW: Prevent duplicate flow execution
+
     /**
      * Handle incoming WhatsApp webhook requests
      */
@@ -267,8 +269,9 @@ class WhatsAppWebhookController extends Controller
 
     private function processBotSending(array $message_data)
     {
-        // Reset flag at start of processing
+        // Reset flags at start of processing
         $this->ecommerceHandledMessage = false;
+        $this->flowHasExecuted = false; // ✅ Reset flow execution flag for new message
 
         if (!empty($message_data['messages'])) {
             $message = reset($message_data['messages']);
@@ -1976,6 +1979,25 @@ class WhatsAppWebhookController extends Controller
                             }
 
                             // This is a specific match (exact/contains/first-time) - execute immediately
+
+                            // ✅ FIX: Check if any flow has already executed for this message
+                            if ($this->flowHasExecuted) {
+                                $this->logToDuplicateFile('Skipping flow - another flow already executed', [
+                                    'flow_id' => $flow->id,
+                                    'flow_name' => $flow->name ?? 'Unknown',
+                                    'trigger_node_id' => $node['id'],
+                                    'reason' => 'duplicate_prevention',
+                                ]);
+
+                                whatsapp_log('Skipping duplicate flow execution', 'info', [
+                                    'flow_id' => $flow->id,
+                                    'trigger_node_id' => $node['id'],
+                                    'reason' => 'flowHasExecuted flag is true',
+                                ]);
+
+                                return true; // Return success but don't execute again
+                            }
+
                             $this->logToDuplicateFile('Flow match found, executing', [
                                 'flow_id' => $flow->id,
                                 'flow_name' => $flow->name ?? 'Unknown',
@@ -1986,9 +2008,13 @@ class WhatsAppWebhookController extends Controller
 
                             $result = $this->executeFlowFromStart($flow, $contactData, $triggerMsg, $chatId, $contactNumber, $phoneNumberId);
 
+                            // ✅ FIX: Mark that a flow has executed to prevent duplicates
+                            $this->flowHasExecuted = true;
+
                             $this->logToDuplicateFile('Flow execution completed, RETURNING', [
                                 'flow_id' => $flow->id,
                                 'flow_name' => $flow->name ?? 'Unknown',
+                                'flowHasExecuted_flag' => $this->flowHasExecuted,
                             ]);
 
                             return $result;
