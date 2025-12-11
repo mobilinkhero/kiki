@@ -293,8 +293,8 @@ trait Ai
 
             // Add current user message (with image if provided)
             if ($imageUrl) {
-                // ✅ ENHANCEMENT: If message is just the placeholder, ask for analysis
-                $aiUserMessage = $message === '[Image]' ? "Please analyze this image and describe it or assist me with it." : $message;
+                // ✅ ENHANCEMENT: Context-aware prompt
+                $aiUserMessage = $message === '[Image]' ? "I have sent you an image. Please check it and respond according to our conversation." : $message;
 
                 $this->logToFile($logFile, "ADDING IMAGE TO REQUEST: " . substr($imageUrl, 0, 50) . "...");
                 $messages[] = [
@@ -555,8 +555,8 @@ trait Ai
             // Step 3: Add current user message to thread
             $userMessageContent = $message;
             if ($imageUrl) {
-                // ✅ ENHANCEMENT: If message is just the placeholder, ask for analysis
-                $aiUserMessage = $message === '[Image]' ? "Please analyze this image and describe it or assist me with it." : $message;
+                // ✅ ENHANCEMENT: Context-aware prompt
+                $aiUserMessage = $message === '[Image]' ? "I have sent you an image. Please check it and respond according to our conversation." : $message;
 
                 // For Assistants API, we should use File ID instead of Base64 URL for reliability
                 $fileId = $this->uploadImageToOpenAI($imageUrl, $apiKey);
@@ -763,8 +763,8 @@ trait Ai
             }
 
             if ($imageUrl) {
-                // ✅ ENHANCEMENT: If message is just the placeholder, ask for analysis
-                $aiUserMessage = $message === '[Image]' ? "Please analyze this image and describe it or assist me with it." : $message;
+                // ✅ ENHANCEMENT: Context-aware prompt
+                $aiUserMessage = $message === '[Image]' ? "I have sent you an image. Please check it and respond according to our conversation." : $message;
 
                 $messages[] = [
                     'role' => 'user',
