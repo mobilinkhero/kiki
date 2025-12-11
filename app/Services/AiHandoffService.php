@@ -176,6 +176,16 @@ class AiHandoffService
             // Parse AI's decision
             $decision = $this->parseHandoffDecision($analysis);
 
+            // SAFETY CHECK: Ignore low confidence handoffs (unless explicit demand)
+            if ($decision['should_handoff']) {
+                $isCritical = in_array($decision['category'] ?? '', ['explicit_demand', 'cannot_help', 'legal_medical']);
+
+                if (!$isCritical && ($decision['confidence'] ?? 0) < 80) {
+                    $decision['should_handoff'] = false;
+                    $decision['reason'] .= ' (CANCELLED: Low confidence ' . $decision['confidence'] . '%)';
+                }
+            }
+
             whatsapp_log('AI Handoff Analysis', 'info', [
                 'user_message' => substr($userMessage, 0, 100),
                 'ai_response' => substr($aiResponse, 0, 100),
@@ -235,6 +245,11 @@ Analyze the user's message and the AI's response. Decide if handoff is needed ba
 
 **CRITICAL RULE: If the AI's response contains useful information from its knowledge base, DO NOT handoff!**
 
+**ADDITIONAL RULES:**
+- DO NOT handoff just because the conversation is long (3+ messages).
+- DO NOT handoff just because the user asks follow-up questions.
+- DO NOT handoff if the AI is asking clarifying questions.
+
 **RESPONSE FORMAT (JSON only):**
 {
   "handoff": true/false,
@@ -243,7 +258,7 @@ Analyze the user's message and the AI's response. Decide if handoff is needed ba
   "category": "cannot_help|extreme_frustration|account_access|explicit_demand|wrong_answer|legal_medical|billing_dispute"
 }
 
-**DEFAULT: When in doubt, LET AI HANDLE IT. Only handoff if AI truly cannot help.**
+**DEFAULT: When in doubt, "handoff": false.**
 PROMPT;
     }
 
