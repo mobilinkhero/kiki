@@ -2876,6 +2876,17 @@ class WhatsAppWebhookController extends Controller
             }
 
             do_action('before_send_flow_message', ['contact_number' => $contactNumber, 'node_data' => $nodeData, 'node_type' => $nodeType, 'phone_number_id' => $phoneNumberId, 'contact_data' => $contactData, 'context' => $context, 'tenant_id' => $this->tenant_id, 'tenant_subdomain' => $this->tenant_subdoamin]);
+
+            // ✅ DEBUG: Log before sending to track duplicates
+            $executionId = uniqid('exec_');
+            whatsapp_log('🔵 BEFORE sendFlowMessage', 'info', [
+                'execution_id' => $executionId,
+                'node_id' => $node['id'],
+                'node_type' => $nodeType,
+                'to' => $contactNumber,
+                'timestamp' => microtime(true),
+            ]);
+
             // Use the WhatsApp trait methods directly
             $result = $this->sendFlowMessage(
                 $contactNumber,
@@ -2885,6 +2896,14 @@ class WhatsAppWebhookController extends Controller
                 $contactData,
                 $context
             );
+
+            whatsapp_log('🟢 AFTER sendFlowMessage', 'info', [
+                'execution_id' => $executionId,
+                'node_id' => $node['id'],
+                'node_type' => $nodeType,
+                'result_status' => $result['status'] ?? 'unknown',
+                'timestamp' => microtime(true),
+            ]);
 
             whatsapp_log('sendFlowMessage result', 'debug', [
                 'node_id' => $node['id'],
