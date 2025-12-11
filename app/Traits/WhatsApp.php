@@ -1108,7 +1108,23 @@ trait WhatsApp
                     $result = $whatsapp_cloud_api->sendDocument($to, $link_id, $message_data['filename'], $message);
                 }
             } else {
+                $message = $message_data['bot_header'] . "\n" . $message_data['reply_text'] . "\n" . $message_data['bot_footer'];
+
+                // ✅ DEBUG: Log before sending to WhatsApp API
+                whatsapp_log('📤 SENDING TO WHATSAPP API', 'info', [
+                    'to' => $to,
+                    'message_preview' => substr($message, 0, 100),
+                    'timestamp' => microtime(true),
+                    'trace' => debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 3),
+                ]);
+
                 $result = $whatsapp_cloud_api->sendTextMessage($to, $message, true);
+
+                whatsapp_log('✅ WHATSAPP API RESPONSE', 'info', [
+                    'to' => $to,
+                    'status_code' => $result->httpStatusCode(),
+                    'timestamp' => microtime(true),
+                ]);
             }
         }
 
