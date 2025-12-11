@@ -1526,7 +1526,6 @@ class WhatsAppWebhookController extends Controller
                         'updated_at' => now(),
                         'is_read' => 1,
                         'tenant_id' => $this->tenant_id,
-                        'is_read' => '1',
                     ]);
 
                     // Broadcast message via Pusher if enabled
@@ -1748,6 +1747,12 @@ class WhatsAppWebhookController extends Controller
             $contact = reset($message_data['contacts']) ?? [];
             $metadata = $message_data['metadata'];
             $contact_data = $this->getContactData($contact_number, $contact['profile']['name'] ?? '');
+
+            // ✅ FEATURE: Safety Net - Check if AI is disabled for this contact (Handoff)
+            if ($contact_data && method_exists($contact_data, 'isAiDisabled') && $contact_data->isAiDisabled()) {
+                whatsapp_log('Bot skipped - AI Disabled for contact (Human Handoff Active)', 'info');
+                return;
+            }
 
             // Get current interaction/chat
             $current_interaction = Chat::fromTenant($this->tenant_subdoamin)->where([

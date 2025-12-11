@@ -2440,6 +2440,37 @@ trait WhatsApp
                     'assistant_name' => $aiResult['assistant_name'] ?? $assistant->name ?? 'N/A',
                 ]);
 
+                // ✅ FEATURE: Check for Human Handoff
+                if (!empty($aiResult['handoff']) && $aiResult['handoff'] === true) {
+                    $this->logFlowDebug('AI Assistant - Human Handoff Triggered');
+
+                    // Disable AI for this contact
+                    // Use model lookup to ensure we have the methods and correct context
+                    try {
+                        $contactModel = \App\Models\Tenant\Contact::find($contactData->id);
+                        if ($contactModel) {
+                            $contactModel->disableAi();
+                            $this->logFlowDebug('AI Assistant - Contact AI Disabled');
+
+                            // Log strictly
+                            whatsapp_log("HUMAN HANDOFF TRIGGERED", "info", [
+                                'contact_id' => $contactData->id,
+                                'contact_phone' => $contactPhone,
+                                'assistant_id' => $assistant->id
+                            ]);
+                        }
+                    } catch (\Throwable $e) {
+                        $this->logFlowDebug('AI Assistant - Handoff Error: ' . $e->getMessage());
+                    }
+
+                    // Override response
+                    $aiResponseText = "I'm connecting you with a human agent who can better assist you. Please wait a moment.";
+                    $aiResult['message'] = $aiResponseText;
+
+                    // Clear buttons if any (handoff shouldn't have buttons usually)
+                    $aiResult['buttons'] = [];
+                }
+
             } catch (\Throwable $e) {
                 $this->logFlowDebug('AI Assistant - Exception Getting Response', [
                     'error' => $e->getMessage(),

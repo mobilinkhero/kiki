@@ -276,6 +276,9 @@ trait Ai
                 $systemContext .= "\n\nYou can attach up to 3 interactive buttons to your response using the format: {{BUTTON:Label}}. labels must be short (max 20 chars). Use buttons for choices, confirmations, or next steps. Example: {{BUTTON:Yes}} {{BUTTON:No}}";
             }
 
+            // ✅ FEATURE: Human Handoff
+            $systemContext .= "\n\nIf the user asks to speak to a human, agent, or support, or if you cannot help, START your response with {{HANDOFF}}.";
+
             $messages[] = ['role' => 'system', 'content' => $systemContext];
 
             $this->logToFile($logFile, "SYSTEM CONTEXT:");
@@ -611,7 +614,7 @@ trait Ai
             $this->logToFile($logFile, "RUNNING ASSISTANT ON THREAD...");
             $runRequestData = [
                 'assistant_id' => $assistantId,
-                'additional_instructions' => ($assistant->allow_buttons ? "\nYou can attach up to 3 interactive buttons to your response using the format: {{BUTTON:Label}}. labels must be short (max 20 chars). Use buttons for choices, confirmations, or next steps. Example: {{BUTTON:Buy Basic}} {{BUTTON:More Info}}" : ""),
+                'additional_instructions' => ($assistant->allow_buttons ? "\nYou can attach up to 3 interactive buttons to your response using the format: {{BUTTON:Label}}. labels must be short (max 20 chars). Use buttons for choices, confirmations, or next steps. Example: {{BUTTON:Buy Basic}} {{BUTTON:More Info}}" : "") . "\nIf the user asks to speak to a human/agent, START response with {{HANDOFF}}.",
             ];
 
             // ✅ AUTO-UPGRADE REMOVED: Respecting user's model setting
@@ -710,6 +713,15 @@ trait Ai
             // Convert markdown formatting to WhatsApp formatting
             $formattedResponse = $this->convertMarkdownToWhatsApp($response);
 
+            // ✅ FEATURE: Human Handoff Detection
+            $handoff = false;
+            if (strpos($formattedResponse, '{{HANDOFF}}') !== false) {
+                $handoff = true;
+                $formattedResponse = str_replace('{{HANDOFF}}', '', $formattedResponse);
+                $formattedResponse = trim($formattedResponse);
+                $this->logToFile($logFile, "  - HANDOFF DETECTED: Flagged for human agent.");
+            }
+
             // ✅ FEATURE: Parse Buttons
             $parsedResponse = $this->parseAiResponseButtons($formattedResponse);
             $finalText = $parsedResponse['text'];
@@ -726,6 +738,7 @@ trait Ai
                 'status' => true,
                 'message' => $finalText,
                 'buttons' => $buttons, // New field
+                'handoff' => $handoff, // New field
                 'assistant_name' => $assistant->name,
                 'model_used' => $assistant->model,
                 'tokens_used' => $assistant->max_tokens, // Approximate
