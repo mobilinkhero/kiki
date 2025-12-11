@@ -45,6 +45,8 @@ class WhatsAppWebhookController extends Controller
 
     protected $flowHasExecuted = false; // ✅ NEW: Prevent duplicate flow execution
 
+    protected $processedNodes = []; // ✅ NEW: Track which nodes have been processed to prevent duplicates
+
     /**
      * Handle incoming WhatsApp webhook requests
      */
@@ -272,6 +274,7 @@ class WhatsAppWebhookController extends Controller
         // Reset flags at start of processing
         $this->ecommerceHandledMessage = false;
         $this->flowHasExecuted = false; // ✅ Reset flow execution flag for new message
+        $this->processedNodes = []; // ✅ Reset processed nodes tracker for new message
 
         if (!empty($message_data['messages'])) {
             $message = reset($message_data['messages']);
@@ -2829,12 +2832,35 @@ class WhatsAppWebhookController extends Controller
     {
         $nodeType = $node['type'];
         $nodeData = $node['data'] ?? [];
+        $nodeId = $node['id'];
+
+        // ✅ CRITICAL FIX: Check if this node has already been processed
+        if (in_array($nodeId, $this->processedNodes)) {
+            whatsapp_log('⛔ DUPLICATE NODE EXECUTION PREVENTED', 'warning', [
+                'node_id' => $nodeId,
+                'node_type' => $nodeType,
+                'reason' => 'node_already_processed_in_this_request',
+                'processed_nodes_count' => count($this->processedNodes),
+            ]);
+
+            $this->logToDuplicateFile('⛔ SKIPPING DUPLICATE NODE', [
+                'node_id' => $nodeId,
+                'node_type' => $nodeType,
+                'already_processed' => $this->processedNodes,
+            ]);
+
+            return true; // Return success but don't process again
+        }
+
+        // ✅ Mark this node as processed IMMEDIATELY
+        $this->processedNodes[] = $nodeId;
 
         // Log EVERY node being processed
         $this->logToDuplicateFile('Processing node', [
-            'node_id' => $node['id'] ?? 'N/A',
+            'node_id' => $nodeId,
             'node_type' => $nodeType,
             'is_ai_assistant' => ($nodeType === 'aiAssistant'),
+            'processed_nodes_count' => count($this->processedNodes),
         ]);
 
         // Debug: Log full node data for AI Assistant nodes
