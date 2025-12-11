@@ -2280,6 +2280,7 @@ trait WhatsApp
         $this->logToAiFile($logFile, "================================================================================");
         $this->logToAiFile($logFile, "TO: " . $to);
         $this->logToAiFile($logFile, "NODE DATA: " . json_encode($nodeData));
+        $this->logToAiFile($logFile, "CONTEXT DATA: " . json_encode($context)); // DEBUG: Log full context
 
         try {
             // Get tenant ID first (needed for security checks)
