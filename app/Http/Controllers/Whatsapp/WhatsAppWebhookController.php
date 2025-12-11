@@ -2945,12 +2945,31 @@ class WhatsAppWebhookController extends Controller
             $nodeMap[$node['id']] = $node;
         }
 
+        // ✅ FIX: Track which nodes we've already added to prevent duplicates
+        $addedNodeIds = [];
+
         // Find all edges that start from the source node
         foreach ($edges as $edge) {
             if ($edge['source'] === $sourceNodeId) {
                 $targetNodeId = $edge['target'];
-                if (isset($nodeMap[$targetNodeId])) {
+
+                // ✅ FIX: Only add each node once, even if multiple edges point to it
+                if (isset($nodeMap[$targetNodeId]) && !in_array($targetNodeId, $addedNodeIds)) {
                     $connectedNodes[] = $nodeMap[$targetNodeId];
+                    $addedNodeIds[] = $targetNodeId; // Mark as added
+
+                    whatsapp_log('Added connected node', 'debug', [
+                        'source_node' => $sourceNodeId,
+                        'target_node' => $targetNodeId,
+                        'node_type' => $nodeMap[$targetNodeId]['type'],
+                    ]);
+                } elseif (in_array($targetNodeId, $addedNodeIds)) {
+                    // Log when we skip a duplicate
+                    whatsapp_log('Skipping duplicate edge to same node', 'warning', [
+                        'source_node' => $sourceNodeId,
+                        'target_node' => $targetNodeId,
+                        'reason' => 'node_already_added',
+                    ]);
                 }
             }
         }
