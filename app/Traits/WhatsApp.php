@@ -2367,27 +2367,28 @@ trait WhatsApp
                 // Query latest message from database
                 $latestMessage = \App\Models\Tenant\ChatMessage::fromTenant($subdomain)
                     ->where('tenant_id', $tenantId)
-                    ->where('from', $contactPhone)
-                    ->where('type', 'received')
+                    ->where('sender_id', $contactPhone)
                     ->orderBy('created_at', 'desc')
                     ->first();
 
                 $this->logToAiFile($imageLogFile, "LATEST MESSAGE:");
                 if ($latestMessage) {
                     $this->logToAiFile($imageLogFile, "  - ID: " . $latestMessage->id);
-                    $this->logToAiFile($imageLogFile, "  - Type: " . ($latestMessage->message_type ?? 'NULL'));
-                    $this->logToAiFile($imageLogFile, "  - Media ID: " . ($latestMessage->media_id ?? 'NULL'));
-                    $this->logToAiFile($imageLogFile, "  - Text: " . ($latestMessage->message ?? 'NULL'));
+                    $this->logToAiFile($imageLogFile, "  - Type: " . ($latestMessage->type ?? 'NULL'));
+                    $this->logToAiFile($imageLogFile, "  - URL: " . ($latestMessage->url ?? 'NULL'));
+                    $this->logToAiFile($imageLogFile, "  - Message: " . ($latestMessage->message ?? 'NULL'));
+                    $this->logToAiFile($imageLogFile, "  - Sender ID: " . ($latestMessage->sender_id ?? 'NULL'));
                 } else {
                     $this->logToAiFile($imageLogFile, "  - NO MESSAGE FOUND!");
                 }
 
-                if ($latestMessage && $latestMessage->message_type === 'image' && $latestMessage->media_id) {
+                // Check if it's an image type message with URL
+                if ($latestMessage && $latestMessage->type === 'image' && $latestMessage->url) {
                     $this->logToAiFile($imageLogFile, "✅ IMAGE DETECTED!");
                     $this->logToAiFile($logFile, "📸 IMAGE DETECTED - Analyzing with AI Vision...");
-                    // Retrieve image URL from WhatsApp
-                    $this->logToAiFile($imageLogFile, "Retrieving image URL...");
-                    $imageUrl = $this->retrieveUrl($latestMessage->media_id);
+
+                    // Image URL is already in the url field
+                    $imageUrl = $latestMessage->url;
 
                     $this->logToAiFile($imageLogFile, "IMAGE URL: " . $imageUrl);
                     $this->logToAiFile($logFile, "IMAGE URL: " . $imageUrl);
@@ -2431,10 +2432,10 @@ trait WhatsApp
                     $this->logToAiFile($imageLogFile, "❌ NO IMAGE - Reason:");
                     if (!$latestMessage) {
                         $this->logToAiFile($imageLogFile, "  - No message found");
-                    } elseif ($latestMessage->message_type !== 'image') {
-                        $this->logToAiFile($imageLogFile, "  - Type is '" . ($latestMessage->message_type ?? 'NULL') . "' not 'image'");
+                    } elseif ($latestMessage->type !== 'image') {
+                        $this->logToAiFile($imageLogFile, "  - Type is '" . ($latestMessage->type ?? 'NULL') . "' not 'image'");
                     } else {
-                        $this->logToAiFile($imageLogFile, "  - No media_id");
+                        $this->logToAiFile($imageLogFile, "  - No URL field");
                     }
                 }
 
