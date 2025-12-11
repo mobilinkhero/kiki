@@ -2489,6 +2489,78 @@ trait WhatsApp
                     'assistant_name' => $aiResult['assistant_name'] ?? $assistant->name ?? 'N/A',
                 ]);
 
+                // ✅ AI-POWERED INTELLIGENT HANDOFF: Let AI decide if it needs human help
+                if ($aiResult['status'] && !empty($aiResponseText)) {
+                    $this->logToAiFile($logFile, "🤖 AI SELF-ANALYSIS: Checking if handoff needed...");
+
+                    $handoffService = new \App\Services\AiHandoffService();
+                    $aiHandoffDecision = $handoffService->shouldAiHandoff($userMessage, $aiResponseText, $tenantId);
+
+                    $this->logToAiFile($logFile, "AI HANDOFF DECISION:");
+                    $this->logToAiFile($logFile, "  - Should Handoff: " . ($aiHandoffDecision['should_handoff'] ? 'YES' : 'NO'));
+                    $this->logToAiFile($logFile, "  - Reason: " . ($aiHandoffDecision['reason'] ?? 'N/A'));
+                    $this->logToAiFile($logFile, "  - Confidence: " . ($aiHandoffDecision['confidence'] ?? 0) . "%");
+                    $this->logToAiFile($logFile, "  - AI Reasoning: " . ($aiHandoffDecision['ai_reasoning'] ?? 'N/A'));
+
+                    if ($aiHandoffDecision['should_handoff']) {
+                        $this->logToAiFile($logFile, "🚨 AI DECIDED TO HANDOFF - Executing...");
+
+                        // Get chat and contact objects
+                        $subdomain = tenant_subdomain_by_tenant_id($tenantId);
+                        $contact = \App\Models\Tenant\Contact::fromTenant($subdomain)
+                            ->where('id', $contactId)
+                            ->first();
+
+                        $chat = \App\Models\Tenant\Chat::fromTenant($subdomain)
+                            ->where('type', $contactData->type ?? 'lead')
+                            ->where('type_id', $contactId)
+                            ->where('tenant_id', $tenantId)
+                            ->first();
+
+                        if ($contact && $chat) {
+                            // Execute AI-initiated handoff
+                            $handoffResult = $handoffService->executeHandoff(
+                                $chat,
+                                $contact,
+                                $aiHandoffDecision['reason'],
+                                false, // Not urgent (AI decided)
+                                $aiHandoffDecision['category'] ?? 'ai_analysis'
+                            );
+
+                            $this->logToAiFile($logFile, "AI-INITIATED HANDOFF EXECUTED:");
+                            $this->logToAiFile($logFile, "  - Success: " . ($handoffResult['success'] ? 'Yes' : 'No'));
+                            $this->logToAiFile($logFile, "  - Agent: " . ($handoffResult['agent']->name ?? 'None'));
+
+                            // Send AI's response first, then handoff message
+                            $aiMessageData = [
+                                'rel_type' => $contactData->type ?? 'guest',
+                                'rel_id' => $contactData->id ?? '',
+                                'reply_text' => $aiResponseText,
+                            ];
+                            $this->sendMessage($to, $aiMessageData, $phoneNumberId);
+
+                            // Wait a moment
+                            sleep(1);
+
+                            // Then send handoff message
+                            $handoffMessageData = [
+                                'rel_type' => $contactData->type ?? 'guest',
+                                'rel_id' => $contactData->id ?? '',
+                                'reply_text' => $handoffResult['message'] . "\n\n_Reason: " . ($aiHandoffDecision['ai_reasoning'] ?? 'Complex query') . "_",
+                            ];
+
+                            $sendResult = $this->sendMessage($to, $handoffMessageData, $phoneNumberId);
+
+                            $this->logToAiFile($logFile, "[$timestamp] FLOW AI ASSISTANT NODE - END (AI-INITIATED HANDOFF)");
+                            $this->logToAiFile($logFile, "================================================================================\n");
+
+                            return $sendResult;
+                        }
+                    } else {
+                        $this->logToAiFile($logFile, "✅ AI CAN HANDLE - Proceeding with normal response");
+                    }
+                }
+
             } catch (\Throwable $e) {
                 $this->logFlowDebug('AI Assistant - Exception Getting Response', [
                     'error' => $e->getMessage(),

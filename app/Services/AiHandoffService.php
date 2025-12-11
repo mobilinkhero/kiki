@@ -126,6 +126,166 @@ class AiHandoffService
     }
 
     /**
+     * AI-Powered Intelligent Handoff Detection
+     * 
+     * Let AI analyze if it should handoff based on:
+     * - Complexity of query
+     * - Confidence in response
+     * - Topic sensitivity
+     * 
+     * @param string $userMessage The user's message
+     * @param string $aiResponse The AI's generated response
+     * @param int $tenantId Tenant ID for API key
+     * @return array Handoff decision with reasoning
+     */
+    public function shouldAiHandoff(string $userMessage, string $aiResponse, int $tenantId): array
+    {
+        try {
+            // Get OpenAI API key
+            $apiKey = get_tenant_setting_by_tenant_id('whats-mark', 'openai_secret_key', null, $tenantId);
+
+            if (empty($apiKey)) {
+                // No API key, can't analyze - default to no handoff
+                return [
+                    'should_handoff' => false,
+                    'reason' => 'no_api_key',
+                    'confidence' => 0,
+                    'ai_reasoning' => null,
+                ];
+            }
+
+            // Prepare analysis prompt for AI
+            $analysisPrompt = $this->buildHandoffAnalysisPrompt($userMessage, $aiResponse);
+
+            // Call OpenAI to analyze
+            $config = new \LLPhant\OpenAIConfig();
+            $config->apiKey = $apiKey;
+            $config->model = 'gpt-4o-mini'; // Fast and cheap for analysis
+            $config->temperature = 0.1; // Low temperature for consistent decisions
+            $config->maxTokens = 150;
+
+            $chat = new \LLPhant\Chat\OpenAIChat($config);
+
+            $messages = [
+                ['role' => 'system', 'content' => $analysisPrompt],
+                ['role' => 'user', 'content' => "User: $userMessage\n\nMy Response: $aiResponse\n\nShould I handoff?"],
+            ];
+
+            $analysis = $chat->generateChat($messages);
+
+            // Parse AI's decision
+            $decision = $this->parseHandoffDecision($analysis);
+
+            whatsapp_log('AI Handoff Analysis', 'info', [
+                'user_message' => substr($userMessage, 0, 100),
+                'ai_response' => substr($aiResponse, 0, 100),
+                'decision' => $decision,
+                'tenant_id' => $tenantId,
+            ], null, $tenantId);
+
+            return $decision;
+
+        } catch (\Exception $e) {
+            // On error, default to no handoff
+            Log::error('AI Handoff Analysis Failed', [
+                'error' => $e->getMessage(),
+                'tenant_id' => $tenantId,
+            ]);
+
+            return [
+                'should_handoff' => false,
+                'reason' => 'analysis_error',
+                'confidence' => 0,
+                'ai_reasoning' => null,
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Build prompt for AI to analyze if handoff is needed
+     */
+    protected function buildHandoffAnalysisPrompt(string $userMessage, string $aiResponse): string
+    {
+        return <<<PROMPT
+You are an AI assistant analyzer. Your job is to determine if the AI should hand off the conversation to a human agent.
+
+Analyze the user's message and the AI's response. Decide if handoff is needed based on:
+
+**HANDOFF REQUIRED IF:**
+1. Query requires human judgment (refunds, complaints, complex decisions)
+2. User is clearly frustrated or angry
+3. Topic is sensitive (legal, medical, financial advice)
+4. AI response is uncertain or lacks confidence
+5. User explicitly asks for human help
+6. Query is outside AI's knowledge base
+7. Requires account access or sensitive data
+8. Escalation is needed (manager, supervisor)
+
+**NO HANDOFF IF:**
+1. Simple FAQ or product information
+2. AI can confidently answer
+3. General inquiry
+4. Order status check (if AI has access)
+5. Basic troubleshooting
+
+**RESPONSE FORMAT (JSON only):**
+{
+  "handoff": true/false,
+  "confidence": 0-100,
+  "reason": "brief reason",
+  "category": "complexity|frustration|sensitive|uncertain|explicit_request|knowledge_gap|escalation"
+}
+
+Be conservative - when in doubt, handoff to human.
+PROMPT;
+    }
+
+    /**
+     * Parse AI's handoff decision from response
+     */
+    protected function parseHandoffDecision(string $analysis): array
+    {
+        // Try to extract JSON from response
+        if (preg_match('/\{[^}]+\}/', $analysis, $matches)) {
+            $json = json_decode($matches[0], true);
+
+            if ($json && isset($json['handoff'])) {
+                return [
+                    'should_handoff' => (bool) $json['handoff'],
+                    'reason' => 'ai_decided_' . ($json['category'] ?? 'unknown'),
+                    'confidence' => (int) ($json['confidence'] ?? 50),
+                    'ai_reasoning' => $json['reason'] ?? 'AI analysis',
+                    'category' => $json['category'] ?? 'unknown',
+                ];
+            }
+        }
+
+        // Fallback: Check for keywords in response
+        $analysisLower = strtolower($analysis);
+
+        if (
+            str_contains($analysisLower, 'handoff') ||
+            str_contains($analysisLower, 'transfer') ||
+            str_contains($analysisLower, 'human')
+        ) {
+            return [
+                'should_handoff' => true,
+                'reason' => 'ai_decided_uncertain',
+                'confidence' => 60,
+                'ai_reasoning' => 'AI suggested handoff based on analysis',
+            ];
+        }
+
+        return [
+            'should_handoff' => false,
+            'reason' => 'ai_decided_can_handle',
+            'confidence' => 70,
+            'ai_reasoning' => 'AI can handle this query',
+        ];
+    }
+
+    /**
      * Execute handoff from AI to human
      */
     public function executeHandoff(
