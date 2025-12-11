@@ -17,15 +17,16 @@ return Application::configure(basePath: dirname(__DIR__))
      * Register global event listeners
      */
     ->withEvents([
-        // Register the tenant event subscriber for cache management
+            // Register the tenant event subscriber for cache management
         TenantCacheManager::class,
     ])
     /**
      * Configure application routing
      */
     ->withRouting(
-        web: __DIR__.'/../routes/web.php',
-        commands: __DIR__.'/../routes/console.php',
+        web: __DIR__ . '/../routes/web.php',
+        api: __DIR__ . '/../routes/api.php',
+        commands: __DIR__ . '/../routes/console.php',
         health: '/up',
         then: function () {
             // Admin routes with shared middleware
@@ -33,20 +34,20 @@ return Application::configure(basePath: dirname(__DIR__))
                 ->prefix('admin')
                 ->as('admin.')
                 ->group(function () {
-                    // Group admin routes from different files
-                    require __DIR__.'/../routes/admin/admin.php';
-                    require __DIR__.'/../routes/admin/payment-settings.php';
-                    require __DIR__.'/../routes/admin/website-settings.php';
-                    require __DIR__.'/../routes/admin/system-settings.php';
-                });
+                // Group admin routes from different files
+                require __DIR__ . '/../routes/admin/admin.php';
+                require __DIR__ . '/../routes/admin/payment-settings.php';
+                require __DIR__ . '/../routes/admin/website-settings.php';
+                require __DIR__ . '/../routes/admin/system-settings.php';
+            });
 
             // API routes
             Route::middleware(['api'])
                 ->prefix('api')
                 ->as('api.')
                 ->group(function () {
-                    Route::middleware(['api.token'])->group(base_path('routes/admin/api.php'));
-                });
+                Route::middleware(['api.token'])->group(base_path('routes/admin/api.php'));
+            });
 
             // Tenant routes configuration with conditional prefixing
             $tenantRoutes = Route::middleware(['web', 'tenant']);
@@ -55,15 +56,15 @@ return Application::configure(basePath: dirname(__DIR__))
             $useTenantPrefix = config('multitenancy.use_tenant_prefix', false);
             $tenantPrefixName = config('multitenancy.tenant_prefix_name', '');
 
-            if ($useTenantPrefix && ! empty($tenantPrefixName)) {
+            if ($useTenantPrefix && !empty($tenantPrefixName)) {
                 $tenantRoutes->prefix($tenantPrefixName);
             }
 
             // Register tenant route files
             $tenantRoutes->group(function () {
-                require __DIR__.'/../routes/tenant/tenant.php';
-                require __DIR__.'/../routes/tenant/system-settings.php';
-                require __DIR__.'/../routes/tenant/whatsmark-settings.php';
+                require __DIR__ . '/../routes/tenant/tenant.php';
+                require __DIR__ . '/../routes/tenant/system-settings.php';
+                require __DIR__ . '/../routes/tenant/whatsmark-settings.php';
             });
         },
     )
@@ -117,7 +118,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Custom tenant finder implementation
         'tenant.finder' => PathTenantFinder::class,
 
-        // PlanFeatureCache singleton for consistent feature availability checks
+            // PlanFeatureCache singleton for consistent feature availability checks
         PlanFeatureCache::class => function () {
             return new PlanFeatureCache;
         },
