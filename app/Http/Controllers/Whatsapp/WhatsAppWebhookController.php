@@ -1737,8 +1737,8 @@ class WhatsAppWebhookController extends Controller
                             if ($transcriptionResult['status'] && !empty($transcriptionResult['text'])) {
                                 $transcribedText = $transcriptionResult['text'];
 
-                                // Prepend transcription to trigger message
-                                $trigger_msg = "[Voice Message]: " . $transcribedText;
+                                // Use transcribed text directly - AI will understand it naturally
+                                $trigger_msg = $transcribedText;
 
                                 whatsapp_log('Voice transcribed successfully', 'info', [
                                     'transcription' => $transcribedText,
