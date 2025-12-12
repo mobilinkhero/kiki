@@ -21,9 +21,13 @@ class AiPerformanceDashboard extends Component
     public $successRate;
     public $languageBreakdown;
     public $sentimentBreakdown;
+    public $subdomain;
 
     public function mount()
     {
+        // Get subdomain from route
+        $this->subdomain = request()->route('subdomain');
+
         $this->loadMetrics();
     }
 
