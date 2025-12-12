@@ -392,6 +392,22 @@
                             </p>
                         </div>
 
+                        <!-- Human Handoff Feature -->
+                        <div>
+                            <div class="flex items-center justify-between">
+                                <label class="flex items-center space-x-3 cursor-pointer">
+                                    <input type="checkbox" wire:model="allow_handoff"
+                                        class="form-checkbox h-5 w-5 text-primary-600 rounded border-gray-300 focus:ring-primary-500 transition duration-150 ease-in-out dark:bg-gray-700 dark:border-gray-600">
+                                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Allow Human
+                                        Handoff</span>
+                                </label>
+                            </div>
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                If enabled, the AI can intelligently transfer conversations to human agents when needed
+                                (e.g., user requests, verification tasks, or complex issues).
+                            </p>
+                        </div>
+
                         <!-- System Instructions -->
                         <div>
                             <label for="system_instructions"
@@ -528,7 +544,8 @@
                         <div class="bg-white dark:bg-gray-800 px-6 py-4 border-b border-gray-100 dark:border-gray-700">
                             <div class="flex items-center justify-between">
                                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                                    {{ $chattingAssistant->name ?? 'SmartFlow AI' }}</h3>
+                                    {{ $chattingAssistant->name ?? 'SmartFlow AI' }}
+                                </h3>
                                 <div class="flex items-center space-x-2">
                                     <button wire:click="closeChat"
                                         class="text-gray-400 hover:text-gray-600 px-3 py-1 text-sm">
@@ -564,9 +581,11 @@
                                         </div>
                                         <div class="flex-1">
                                             <h4 class="text-white font-medium">
-                                                {{ $chattingAssistant->name ?? 'SmartFlow AI' }}</h4>
+                                                {{ $chattingAssistant->name ?? 'SmartFlow AI' }}
+                                            </h4>
                                             <p class="text-xs text-white/80">
-                                                {{ $availableModels[$chattingAssistant->model] ?? 'gpt-3.5-turbo' }}</p>
+                                                {{ $availableModels[$chattingAssistant->model] ?? 'gpt-3.5-turbo' }}
+                                            </p>
                                         </div>
                                         <span class="text-xs text-white/80 bg-white/20 px-2 py-1 rounded">
                                             {{ $chattingAssistant->hasUploadedFiles() ? $chattingAssistant->getFileCount() : 1 }}
@@ -589,7 +608,8 @@
                                                     </div>
                                                     <div class="flex-1">
                                                         <p class="text-sm text-gray-700 dark:text-gray-300">
-                                                            {{ $message['content'] }}</p>
+                                                            {{ $message['content'] }}
+                                                        </p>
                                                         <p class="text-xs text-gray-400 mt-1">{{ $message['timestamp'] }}</p>
                                                     </div>
                                                 </div>
@@ -641,7 +661,8 @@
                                                         <x-heroicon-s-document class="w-4 h-4 text-green-500 mt-0.5" />
                                                         <div class="flex-1 min-w-0">
                                                             <p class="text-sm font-medium text-gray-900 dark:text-white truncate">
-                                                                {{ $file['original_name'] }}</p>
+                                                                {{ $file['original_name'] }}
+                                                            </p>
                                                             <p class="text-xs text-green-600 mt-1">Synced</p>
                                                         </div>
                                                     </div>
@@ -733,7 +754,8 @@
                                             <h3 class="text-lg font-semibold text-gray-900 dark:text-white">OpenAI Integration
                                                 Details</h3>
                                             <p class="text-sm text-gray-500 dark:text-gray-400">
-                                                {{ $detailsAssistant->name ?? 'AI Assistant' }}</p>
+                                                {{ $detailsAssistant->name ?? 'AI Assistant' }}
+                                            </p>
                                         </div>
                                     </div>
                                     <button wire:click="closeDetails"
@@ -814,7 +836,8 @@
                                                     <div
                                                         class="bg-white dark:bg-gray-800 rounded p-2 border border-gray-200 dark:border-gray-600">
                                                         <p class="text-xs font-mono text-gray-700 dark:text-gray-300 break-all">
-                                                            {{ $details['openai_assistant_id'] }}</p>
+                                                            {{ $details['openai_assistant_id'] }}
+                                                        </p>
                                                     </div>
                                                 @else
                                                     <p class="text-xs text-gray-500 italic">Click "Sync Now" to create</p>
@@ -842,7 +865,8 @@
                                                     <div
                                                         class="bg-white dark:bg-gray-800 rounded p-2 border border-gray-200 dark:border-gray-600">
                                                         <p class="text-xs font-mono text-gray-700 dark:text-gray-300 break-all">
-                                                            {{ $details['openai_vector_store_id'] }}</p>
+                                                            {{ $details['openai_vector_store_id'] }}
+                                                        </p>
                                                     </div>
                                                 @else
                                                     <p class="text-xs text-gray-500 italic">Will be created on sync</p>
