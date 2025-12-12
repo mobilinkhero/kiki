@@ -2453,7 +2453,7 @@ trait WhatsApp
                         'tenant_id' => $this->tenant_id,
                         'contact_id' => $contactData->id ?? null,
                         'personal_assistant_id' => $assistant->id ?? null,
-                        'conversation_id' => $fromNumber,
+                        'conversation_id' => $contactPhone ?? null,
                         'user_message' => $userMessage,
                         'ai_response' => $aiResponseText,
                         'response_time_ms' => isset($aiResult['response_time']) ? (int) ($aiResult['response_time'] * 1000) : null,
