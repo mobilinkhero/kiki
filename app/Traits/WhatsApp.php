@@ -2454,6 +2454,11 @@ trait WhatsApp
                     $userSentiment = \App\Services\AiAnalyticsService::analyzeSentiment($userMessage);
                     $responseTimeMs = isset($aiResult['response_time']) ? (int) ($aiResult['response_time'] * 1000) : null;
 
+                    // DEBUG: Log what we got
+                    $this->logToFile($analyticsLogFile, "DEBUG - aiResult keys: " . implode(', ', array_keys($aiResult)));
+                    $this->logToFile($analyticsLogFile, "DEBUG - response_time raw: " . ($aiResult['response_time'] ?? 'NOT SET'));
+                    $this->logToFile($analyticsLogFile, "DEBUG - response_time ms: " . ($responseTimeMs ?? 'NULL'));
+
                     $this->logToFile($analyticsLogFile, "Language: " . $detectedLanguage);
                     $this->logToFile($analyticsLogFile, "Sentiment: " . $userSentiment . " " . \App\Services\AiAnalyticsService::getSentimentEmoji($userSentiment));
                     $this->logToFile($analyticsLogFile, "Response Time: " . ($responseTimeMs ?? 'N/A') . "ms");
