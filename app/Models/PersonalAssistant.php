@@ -48,6 +48,7 @@ class PersonalAssistant extends Model
         'openai_assistant_id',
         'openai_vector_store_id',
         'allow_buttons',
+        'allow_handoff',
     ];
 
     protected $casts = [
@@ -58,6 +59,7 @@ class PersonalAssistant extends Model
         'uploaded_files' => 'array',
         'use_case_tags' => 'array',
         'allow_buttons' => 'boolean',
+        'allow_handoff' => 'boolean',
     ];
 
     protected $attributes = [
