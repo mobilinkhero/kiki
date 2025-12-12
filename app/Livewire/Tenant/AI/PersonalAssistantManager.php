@@ -39,6 +39,7 @@ class PersonalAssistantManager extends Component
     public $use_case_tags = [];
     public $file_analysis_enabled = true;
     public $allow_buttons = false;
+    public $allow_handoff = false;
 
     protected $rules = [
         'name' => 'required|string|max:255',
@@ -117,6 +118,7 @@ class PersonalAssistantManager extends Component
             $this->use_case_tags = $this->assistant->use_case_tags ?? [];
             $this->file_analysis_enabled = $this->assistant->file_analysis_enabled;
             $this->allow_buttons = $this->assistant->allow_buttons;
+            $this->allow_handoff = $this->assistant->allow_handoff ?? false;
         } else {
             $this->resetForm();
         }
@@ -161,6 +163,7 @@ class PersonalAssistantManager extends Component
                 'use_case_tags' => $this->use_case_tags,
                 'file_analysis_enabled' => $this->file_analysis_enabled,
                 'allow_buttons' => $this->allow_buttons,
+                'allow_handoff' => $this->allow_handoff,
             ];
 
             // Check if we're editing an existing assistant
@@ -334,6 +337,7 @@ class PersonalAssistantManager extends Component
         $this->use_case_tags = $assistant->use_case_tags ?? [];
         $this->file_analysis_enabled = $assistant->file_analysis_enabled;
         $this->allow_buttons = $assistant->allow_buttons;
+        $this->allow_handoff = $assistant->allow_handoff ?? false;
 
         $this->showCreateForm = true;
     }
@@ -692,6 +696,7 @@ class PersonalAssistantManager extends Component
         $this->use_case_tags = [];
         $this->file_analysis_enabled = true;
         $this->allow_buttons = false;
+        $this->allow_handoff = false;
         $this->files = [];
         $this->editingAssistantId = null;
     }
