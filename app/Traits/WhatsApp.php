@@ -2454,9 +2454,7 @@ trait WhatsApp
                     $userSentiment = \App\Services\AiAnalyticsService::analyzeSentiment($userMessage);
                     $responseTimeMs = isset($aiResult['response_time']) ? (int) ($aiResult['response_time'] * 1000) : null;
 
-                    $this->logToFile($analyticsLogFile, "Language: " . $detectedLanguage);
-                    $this->logToFile($analyticsLogFile, "Sentiment: " . $userSentiment . " " . \App\Services\AiAnalyticsService::getSentimentEmoji($userSentiment));
-                    $this->logToFile($analyticsLogFile, "Response Time: " . ($responseTimeMs ?? 'N/A') . "ms");
+
 
                     \App\Models\AiAnalytics::trackAiResponse([
                         'tenant_id' => $this->tenant_id,
@@ -2473,11 +2471,13 @@ trait WhatsApp
                         'user_sentiment' => $userSentiment,
                     ]);
 
-                    $this->logToFile($analyticsLogFile, "✅ Analytics tracked successfully");
+
                 } catch (\Exception $e) {
-                    // Log to both files
-                    $this->logToFile($analyticsLogFile, "❌ Analytics tracking FAILED: " . $e->getMessage());
-                    $this->logToFile($analyticsLogFile, "Error trace: " . $e->getTraceAsString());
+                    // Log errors only
+                    $this->logToFile($analyticsLogFile, "❌ ANALYTICS ERROR [" . date('Y-m-d H:i:s') . "]");
+                    $this->logToFile($analyticsLogFile, "Error: " . $e->getMessage());
+                    $this->logToFile($analyticsLogFile, "Trace: " . $e->getTraceAsString());
+                    $this->logToFile($analyticsLogFile, "---");
                     whatsapp_log('Analytics tracking failed', 'warning', ['error' => $e->getMessage()]);
                 }
 
@@ -2507,10 +2507,6 @@ trait WhatsApp
                     // ✅ ANALYTICS: Track Handoff Event
                     $analyticsLogFile = storage_path('logs/ai_analytics.log');
                     try {
-                        $this->logToFile($analyticsLogFile, "=== HANDOFF EVENT ===");
-                        $this->logToFile($analyticsLogFile, "Tenant ID: " . $this->tenant_id);
-                        $this->logToFile($analyticsLogFile, "Contact ID: " . ($contactData->id ?? 'N/A'));
-                        $this->logToFile($analyticsLogFile, "Handoff Reason: " . ($aiResult['handoff_reason'] ?? 'user_request'));
 
                         \App\Models\AiAnalytics::trackHandoff([
                             'tenant_id' => $this->tenant_id,
@@ -2523,10 +2519,12 @@ trait WhatsApp
                             'ai_disabled_after' => true,
                         ]);
 
-                        $this->logToFile($analyticsLogFile, "✅ Handoff analytics tracked successfully");
+
                     } catch (\Exception $e) {
-                        $this->logToFile($analyticsLogFile, "❌ Handoff analytics FAILED: " . $e->getMessage());
-                        $this->logToFile($analyticsLogFile, "Error trace: " . $e->getTraceAsString());
+                        $this->logToFile($analyticsLogFile, "❌ HANDOFF ERROR [" . date('Y-m-d H:i:s') . "]");
+                        $this->logToFile($analyticsLogFile, "Error: " . $e->getMessage());
+                        $this->logToFile($analyticsLogFile, "Trace: " . $e->getTraceAsString());
+                        $this->logToFile($analyticsLogFile, "---");
                         whatsapp_log('Handoff analytics tracking failed', 'warning', ['error' => $e->getMessage()]);
                     }
 
