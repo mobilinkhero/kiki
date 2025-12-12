@@ -479,6 +479,7 @@ trait Ai
                 'assistant_name' => $assistant->name,
                 'model_used' => $assistant->model,
                 'tokens_used' => $assistant->max_tokens, // Approximate
+                'response_time' => $apiDuration / 1000, // Convert ms to seconds for consistency
             ];
 
             $this->logToFile($logFile, "FINAL RESPONSE TO USER:");
