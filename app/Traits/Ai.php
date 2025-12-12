@@ -145,6 +145,94 @@ trait Ai
     }
 
     /**
+     * Transcribe voice/audio message to text using OpenAI Whisper
+     *
+     * @param string $audioUrl URL to the audio file from WhatsApp
+     * @param int|null $tenantId Optional tenant ID for API key retrieval
+     * @return array Contains status, text transcription, and error if any
+     */
+    public function transcribeVoiceMessage(string $audioUrl, $tenantId = null): array
+    {
+        $logFile = storage_path('logs/voice_transcription.log');
+        $timestamp = now()->format('Y-m-d H:i:s');
+
+        $this->logToFile($logFile, "[$timestamp] Voice Transcription Started");
+        $this->logToFile($logFile, "Audio URL: $audioUrl");
+
+        try {
+            // Get OpenAI API key
+            $openAiKey = $this->getOpenAiKey($tenantId);
+
+            if (empty($openAiKey)) {
+                $this->logToFile($logFile, "ERROR: OpenAI API key not found");
+                return [
+                    'status' => false,
+                    'message' => 'OpenAI API key not configured',
+                    'text' => null
+                ];
+            }
+
+            // Download audio file from WhatsApp URL
+            $this->logToFile($logFile, "Downloading audio file...");
+            $audioContent = file_get_contents($audioUrl);
+
+            if ($audioContent === false) {
+                $this->logToFile($logFile, "ERROR: Failed to download audio file");
+                return [
+                    'status' => false,
+                    'message' => 'Failed to download audio file',
+                    'text' => null
+                ];
+            }
+
+            // Save to temporary file
+            $tempFile = sys_get_temp_dir() . '/voice_' . uniqid() . '.ogg';
+            file_put_contents($tempFile, $audioContent);
+            $this->logToFile($logFile, "Audio saved to: $tempFile");
+
+            // Create OpenAI client
+            $openAi = new \OpenAI;
+            $client = $openAi->client($openAiKey);
+
+            // Call Whisper API for transcription
+            $this->logToFile($logFile, "Sending to OpenAI Whisper API...");
+            $response = $client->audio()->transcribe([
+                'model' => 'whisper-1',
+                'file' => fopen($tempFile, 'rb'),
+                'response_format' => 'json',
+            ]);
+
+            // Clean up temporary file
+            @unlink($tempFile);
+
+            // Extract transcription text
+            $transcription = $response->text ?? '';
+
+            $this->logToFile($logFile, "SUCCESS: Transcription completed");
+            $this->logToFile($logFile, "Transcribed Text: $transcription");
+
+            return [
+                'status' => true,
+                'text' => $transcription,
+                'message' => 'Voice transcribed successfully'
+            ];
+
+        } catch (\Throwable $e) {
+            $this->logToFile($logFile, "ERROR: " . $e->getMessage());
+            whatsapp_log('Voice Transcription Error', 'error', [
+                'audio_url' => $audioUrl,
+                'error' => $e->getMessage(),
+            ], $e);
+
+            return [
+                'status' => false,
+                'message' => $e->getMessage(),
+                'text' => null
+            ];
+        }
+    }
+
+    /**
      * Send message to personal assistant with context
      *
      * @param string $message User message
