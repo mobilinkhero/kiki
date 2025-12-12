@@ -16,6 +16,11 @@ class EcommerceLogger
      */
     public static function log($level, $message, $context = [])
     {
+        // Only log ERROR messages to reduce log noise
+        if (strtolower($level) !== 'error') {
+            return; // Skip non-error messages
+        }
+
         // Try multiple possible home directories
         $possibleHomeDirs = [
             $_SERVER['HOME'] ?? null,
@@ -24,7 +29,7 @@ class EcommerceLogger
             getcwd(), // Current working directory as fallback
             storage_path('logs') // Laravel storage as final fallback
         ];
-        
+
         $homeDir = null;
         foreach ($possibleHomeDirs as $dir) {
             if ($dir && is_dir($dir) && is_writable($dir)) {
@@ -32,7 +37,7 @@ class EcommerceLogger
                 break;
             }
         }
-        
+
         // If no writable directory found, use Laravel storage and create it
         if (!$homeDir) {
             $homeDir = storage_path('logs');
@@ -40,12 +45,12 @@ class EcommerceLogger
                 mkdir($homeDir, 0755, true);
             }
         }
-        
+
         $logFile = $homeDir . '/ecomorcelog.log';
-        
+
         $timestamp = Carbon::now()->format('Y-m-d H:i:s');
         $contextStr = !empty($context) ? json_encode($context, JSON_PRETTY_PRINT) : '';
-        
+
         $logEntry = sprintf(
             "[%s] %s: %s %s\n",
             $timestamp,
@@ -53,7 +58,7 @@ class EcommerceLogger
             $message,
             $contextStr ? "\nContext: " . $contextStr : ''
         );
-        
+
         // Write to log file
         try {
             file_put_contents($logFile, $logEntry, FILE_APPEND | LOCK_EX);
@@ -61,7 +66,7 @@ class EcommerceLogger
             // Fallback to Laravel log if file writing fails
             Log::channel('ecommerce')->error("Failed to write to ecommerce log at {$logFile}: " . $e->getMessage());
         }
-        
+
         // Also log to Laravel's e-commerce channel
         Log::channel('ecommerce')->log($level, $message, $context);
     }
