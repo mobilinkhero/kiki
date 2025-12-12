@@ -2443,11 +2443,6 @@ trait WhatsApp
                 // ✅ ANALYTICS: Track AI Response
                 $analyticsLogFile = storage_path('logs/ai_analytics.log');
                 try {
-                    $this->logToFile($analyticsLogFile, "=== AI RESPONSE ANALYTICS ===");
-                    $this->logToFile($analyticsLogFile, "Tenant ID: " . $this->tenant_id);
-                    $this->logToFile($analyticsLogFile, "Contact ID: " . ($contactData->id ?? 'N/A'));
-                    $this->logToFile($analyticsLogFile, "User Message: " . substr($userMessage, 0, 100));
-                    $this->logToFile($analyticsLogFile, "AI Response: " . substr($aiResponseText, 0, 100));
 
                     // ✅ NEW: Enhanced Analytics Features
                     $detectedLanguage = \App\Services\AiAnalyticsService::detectLanguage($userMessage);
