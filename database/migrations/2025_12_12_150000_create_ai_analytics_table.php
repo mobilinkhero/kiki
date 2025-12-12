@@ -10,6 +10,9 @@ return new class extends Migration {
      */
     public function up(): void
     {
+        // Drop if exists from previous failed migration
+        Schema::dropIfExists('ai_analytics');
+
         Schema::create('ai_analytics', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('tenant_id');
