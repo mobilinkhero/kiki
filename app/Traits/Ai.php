@@ -172,23 +172,32 @@ trait Ai
                 ];
             }
 
-            // Download audio file from WhatsApp URL
-            $this->logToFile($logFile, "Downloading audio file...");
-            $audioContent = file_get_contents($audioUrl);
+            // Handle both local file paths and URLs
+            $deleteAfter = false;
+            if (file_exists($audioUrl)) {
+                // It's a local file path
+                $this->logToFile($logFile, "Using local file: $audioUrl");
+                $tempFile = $audioUrl;
+            } else {
+                // It's a URL - download it
+                $this->logToFile($logFile, "Downloading audio file from URL...");
+                $audioContent = file_get_contents($audioUrl);
 
-            if ($audioContent === false) {
-                $this->logToFile($logFile, "ERROR: Failed to download audio file");
-                return [
-                    'status' => false,
-                    'message' => 'Failed to download audio file',
-                    'text' => null
-                ];
+                if ($audioContent === false) {
+                    $this->logToFile($logFile, "ERROR: Failed to download audio file");
+                    return [
+                        'status' => false,
+                        'message' => 'Failed to download audio file',
+                        'text' => null
+                    ];
+                }
+
+                // Save to temporary file
+                $tempFile = sys_get_temp_dir() . '/voice_' . uniqid() . '.ogg';
+                file_put_contents($tempFile, $audioContent);
+                $deleteAfter = true;
+                $this->logToFile($logFile, "Audio saved to: $tempFile");
             }
-
-            // Save to temporary file
-            $tempFile = sys_get_temp_dir() . '/voice_' . uniqid() . '.ogg';
-            file_put_contents($tempFile, $audioContent);
-            $this->logToFile($logFile, "Audio saved to: $tempFile");
 
             // Create OpenAI client
             $openAi = new \OpenAI;
@@ -202,8 +211,10 @@ trait Ai
                 'response_format' => 'json',
             ]);
 
-            // Clean up temporary file
-            @unlink($tempFile);
+            // Clean up temporary file only if we created it
+            if ($deleteAfter) {
+                @unlink($tempFile);
+            }
 
             // Extract transcription text
             $transcription = $response->text ?? '';

@@ -1717,6 +1717,46 @@ class WhatsAppWebhookController extends Controller
             }
         }
 
+        // ✅ HANDLE VOICE/AUDIO PROCESSING FOR TRANSCRIPTION
+        if (isset($message['type']) && ($message['type'] === 'audio' || $message['type'] === 'voice')) {
+            try {
+                $mediaId = $message['audio']['id'] ?? $message['voice']['id'] ?? null;
+
+                if ($mediaId) {
+                    whatsapp_log('Voice message detected, starting transcription', 'info', ['media_id' => $mediaId]);
+
+                    // Use retrieveUrl from Trait to download audio
+                    $filename = $this->setWaTenantId($this->tenant_id)->retrieveUrl($mediaId);
+
+                    if ($filename) {
+                        $path = storage_path('app/public/whatsapp-attachments/' . $filename);
+                        if (file_exists($path)) {
+                            // Call transcription method from Ai trait
+                            $transcriptionResult = $this->transcribeVoiceMessage($path, $this->tenant_id);
+
+                            if ($transcriptionResult['status'] && !empty($transcriptionResult['text'])) {
+                                $transcribedText = $transcriptionResult['text'];
+
+                                // Prepend transcription to trigger message
+                                $trigger_msg = "[Voice Message]: " . $transcribedText;
+
+                                whatsapp_log('Voice transcribed successfully', 'info', [
+                                    'transcription' => $transcribedText,
+                                    'length' => strlen($transcribedText)
+                                ]);
+                            } else {
+                                whatsapp_log('Voice transcription failed', 'error', [
+                                    'error' => $transcriptionResult['message'] ?? 'Unknown error'
+                                ]);
+                            }
+                        }
+                    }
+                }
+            } catch (\Exception $e) {
+                whatsapp_log('Failed to process voice message', 'error', ['error' => $e->getMessage()]);
+            }
+        }
+
         // Use the new extraction method for both buttons and lists
         $button_id = $this->extractButtonIdFromMessage($message);
 
