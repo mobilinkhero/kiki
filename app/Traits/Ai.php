@@ -949,6 +949,15 @@ trait Ai
     private function logToFile($filePath, $message)
     {
         try {
+            // Only log ERROR messages to reduce log noise
+            if (
+                stripos($message, 'ERROR') === false &&
+                stripos($message, 'EXCEPTION') === false &&
+                stripos($message, 'FAILED') === false
+            ) {
+                return; // Skip non-error messages
+            }
+
             // Ensure directory exists
             $directory = dirname($filePath);
             if (!file_exists($directory)) {
