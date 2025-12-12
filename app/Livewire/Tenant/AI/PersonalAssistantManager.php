@@ -28,6 +28,7 @@ class PersonalAssistantManager extends Component
     public $currentMessage = '';
     public $showDetailsModal = false;
     public $detailsAssistantId = null;
+    public $subdomain;
 
     // Form fields
     public $name = '';
@@ -99,6 +100,10 @@ class PersonalAssistantManager extends Component
             $this->notify(['type' => 'danger', 'message' => t('access_denied_note') . ' - AI Assistant feature is not available in your plan.'], true);
             return redirect()->to(tenant_route('tenant.dashboard'));
         }
+
+        // Get subdomain from route
+        $this->subdomain = request()->route('subdomain');
+
         $this->loadAssistant();
     }
 
