@@ -2449,6 +2449,15 @@ trait WhatsApp
                     $this->logToFile($analyticsLogFile, "User Message: " . substr($userMessage, 0, 100));
                     $this->logToFile($analyticsLogFile, "AI Response: " . substr($aiResponseText, 0, 100));
 
+                    // ✅ NEW: Enhanced Analytics Features
+                    $detectedLanguage = \App\Services\AiAnalyticsService::detectLanguage($userMessage);
+                    $userSentiment = \App\Services\AiAnalyticsService::analyzeSentiment($userMessage);
+                    $responseTimeMs = isset($aiResult['response_time']) ? (int) ($aiResult['response_time'] * 1000) : null;
+
+                    $this->logToFile($analyticsLogFile, "Language: " . $detectedLanguage);
+                    $this->logToFile($analyticsLogFile, "Sentiment: " . $userSentiment . " " . \App\Services\AiAnalyticsService::getSentimentEmoji($userSentiment));
+                    $this->logToFile($analyticsLogFile, "Response Time: " . ($responseTimeMs ?? 'N/A') . "ms");
+
                     \App\Models\AiAnalytics::trackAiResponse([
                         'tenant_id' => $this->tenant_id,
                         'contact_id' => $contactData->id ?? null,
@@ -2456,10 +2465,12 @@ trait WhatsApp
                         'conversation_id' => $contactPhone ?? null,
                         'user_message' => $userMessage,
                         'ai_response' => $aiResponseText,
-                        'response_time_ms' => isset($aiResult['response_time']) ? (int) ($aiResult['response_time'] * 1000) : null,
+                        'response_time_ms' => $responseTimeMs,
                         'was_successful' => $aiResult['status'] ?? false,
                         'message_length' => strlen($userMessage),
                         'business_category' => $assistant->use_case_tags[0] ?? null,
+                        'detected_language' => $detectedLanguage,
+                        'user_sentiment' => $userSentiment,
                     ]);
 
                     $this->logToFile($analyticsLogFile, "✅ Analytics tracked successfully");

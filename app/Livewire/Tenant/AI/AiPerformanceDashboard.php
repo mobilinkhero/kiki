@@ -19,6 +19,8 @@ class AiPerformanceDashboard extends Component
     public $busiestHours;
     public $dailyTrends;
     public $successRate;
+    public $languageBreakdown;
+    public $sentimentBreakdown;
 
     public function mount()
     {
@@ -74,6 +76,24 @@ class AiPerformanceDashboard extends Component
             ->groupBy('date')
             ->orderBy('date')
             ->pluck('count', 'date')
+            ->toArray();
+
+        // Language breakdown
+        $this->languageBreakdown = AiAnalytics::where('tenant_id', $tenantId)
+            ->where('created_at', '>=', now()->subDays($days))
+            ->whereNotNull('detected_language')
+            ->selectRaw('detected_language, COUNT(*) as count')
+            ->groupBy('detected_language')
+            ->pluck('count', 'detected_language')
+            ->toArray();
+
+        // Sentiment breakdown
+        $this->sentimentBreakdown = AiAnalytics::where('tenant_id', $tenantId)
+            ->where('created_at', '>=', now()->subDays($days))
+            ->whereNotNull('user_sentiment')
+            ->selectRaw('user_sentiment, COUNT(*) as count')
+            ->groupBy('user_sentiment')
+            ->pluck('count', 'user_sentiment')
             ->toArray();
     }
 

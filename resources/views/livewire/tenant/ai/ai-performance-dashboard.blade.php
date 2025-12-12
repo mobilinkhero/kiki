@@ -232,4 +232,97 @@
             <p class="text-gray-500 dark:text-gray-400 text-center py-8">No daily data yet</p>
         @endif
     </div>
+
+    <!-- New Analytics Row: Language & Sentiment -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <!-- Language Breakdown -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">🌍 Language Distribution</h3>
+            @if(count($languageBreakdown ?? []) > 0)
+                <div class="space-y-3">
+                    @php
+                        $totalLang = array_sum($languageBreakdown);
+                        $languageLabels = [
+                            'english' => '🇬🇧 English',
+                            'roman_urdu' => '🇵🇰 Roman Urdu',
+                            'urdu_script' => '🇵🇰 Urdu Script'
+                        ];
+                    @endphp
+                    @foreach($languageBreakdown as $lang => $count)
+                        @php
+                            $percentage = $totalLang > 0 ? round(($count / $totalLang) * 100, 1) : 0;
+                        @endphp
+                        <div>
+                            <div class="flex justify-between text-sm mb-1">
+                                <span
+                                    class="text-gray-700 dark:text-gray-300">{{ $languageLabels[$lang] ?? ucfirst($lang) }}</span>
+                                <span class="text-gray-600 dark:text-gray-400">{{ $count }} ({{ $percentage }}%)</span>
+                            </div>
+                            <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                                <div class="bg-gradient-to-r from-green-500 to-teal-500 h-2 rounded-full"
+                                    style="width: {{ $percentage }}%"></div>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            @else
+                <p class="text-gray-500 dark:text-gray-400 text-center py-8">No language data yet</p>
+            @endif
+        </div>
+
+        <!-- Sentiment Analysis -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">😊 User Sentiment</h3>
+            @if(count($sentimentBreakdown ?? []) > 0)
+                <div class="space-y-4">
+                    @php
+                        $totalSentiment = array_sum($sentimentBreakdown);
+                        $sentimentConfig = [
+                            'positive' => ['emoji' => '😊', 'label' => 'Positive', 'color' => 'from-green-500 to-emerald-500'],
+                            'neutral' => ['emoji' => '😐', 'label' => 'Neutral', 'color' => 'from-blue-500 to-cyan-500'],
+                            'negative' => ['emoji' => '😠', 'label' => 'Negative', 'color' => 'from-red-500 to-orange-500']
+                        ];
+                    @endphp
+
+                    <!-- Pie Chart Visual -->
+                    <div class="grid grid-cols-3 gap-4 mb-4">
+                        @foreach(['positive', 'neutral', 'negative'] as $sentiment)
+                            @php
+                                $count = $sentimentBreakdown[$sentiment] ?? 0;
+                                $percentage = $totalSentiment > 0 ? round(($count / $totalSentiment) * 100, 1) : 0;
+                                $config = $sentimentConfig[$sentiment];
+                            @endphp
+                            <div class="text-center">
+                                <div class="text-4xl mb-2">{{ $config['emoji'] }}</div>
+                                <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ $percentage }}%</div>
+                                <div class="text-xs text-gray-600 dark:text-gray-400">{{ $config['label'] }}</div>
+                                <div class="text-xs text-gray-500 dark:text-gray-500">{{ $count }} msgs</div>
+                            </div>
+                        @endforeach
+                    </div>
+
+                    <!-- Bar representation -->
+                    @foreach($sentimentBreakdown as $sentiment => $count)
+                        @php
+                            $percentage = $totalSentiment > 0 ? round(($count / $totalSentiment) * 100, 1) : 0;
+                            $config = $sentimentConfig[$sentiment];
+                        @endphp
+                        <div>
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="text-gray-700 dark:text-gray-300">{{ $config['emoji'] }}
+                                    {{ $config['label'] }}</span>
+                                <span class="text-gray-600 dark:text-gray-400">{{ $count }} ({{ $percentage }}%)</span>
+                            </div>
+                            <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                                <div class="bg-gradient-to-r {{ $config['color'] }} h-2 rounded-full"
+                                    style="width: {{ $percentage }}%"></div>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            @else
+                <p class="text-gray-500 dark:text-gray-400 text-center py-8">No sentiment data yet</p>
+            @endif
+        </div>
+    </div>
 </div>
