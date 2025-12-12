@@ -3903,6 +3903,9 @@ class WhatsAppWebhookController extends Controller
      */
     private function logToDuplicateFile($message, $context = [])
     {
+        // Disabled to reduce log noise
+        return;
+
         $logFile = storage_path('logs/whatsappduplicate.log');
         $timestamp = now()->format('Y-m-d H:i:s.u');
 
