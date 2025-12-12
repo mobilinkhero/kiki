@@ -11,7 +11,7 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::table('personal_assistants', function (Blueprint $table) {
-            $table->boolean('allow_handoff')->default(true)->after('allow_buttons');
+            $table->boolean('allow_handoff')->default(false)->after('allow_buttons');
         });
     }
 
