@@ -276,8 +276,8 @@ trait Ai
                 $systemContext .= "\n\nYou can attach up to 3 interactive buttons to your response using the format: {{BUTTON:Label}}. labels must be short (max 20 chars). Use buttons for choices, confirmations, or next steps. Example: {{BUTTON:Yes}} {{BUTTON:No}}";
             }
 
-            // ✅ FEATURE: Human Handoff
-            $systemContext .= "\n\nIf the user asks to speak to a human, agent, or support, or if you cannot help, START your response with {{HANDOFF}}.";
+            // ✅ FEATURE: Human Handoff - Comprehensive Instructions
+            $systemContext .= "\n\n🚨 CRITICAL: HANDOFF TO HUMAN PROTOCOL\nYou MUST START your response with {{HANDOFF}} in these situations:\n\n1. IMAGE/SCREENSHOT RECEIVED: User HAS SENT an image, screenshot, or file (not just mentioned it)\n   - If they say 'I paid' → Ask them to send screenshot\n   - If they SEND screenshot → {{HANDOFF}} immediately\n\n2. EXPLICIT HUMAN REQUEST: User asks for human, agent, support, staff, manager, real person\n\n3. BEYOND CAPABILITY: Issue requires access, permissions, or actions you cannot perform\n\n4. HARASSMENT/SPAM: User is abusive, repeatedly ignoring answers, or asking same question 3+ times\n\n5. TECHNICAL FAILURES: System errors, billing issues, account problems needing admin intervention\n\n6. COMPLEX DISPUTES: Refunds, complaints, legal matters, or sensitive issues\n\n7. UNCERTAINTY: If you're unsure or don't have confident answer\n\n⚠️ PAYMENT FLOW:\n- User: 'I made payment' → You: 'Please send payment screenshot for verification'\n- User: [sends image] → You: {{HANDOFF}} Let me connect you with our team to verify...\n\nDO NOT handoff just because they mention payment. Wait for actual screenshot/image.";
 
             $messages[] = ['role' => 'system', 'content' => $systemContext];
 
@@ -614,7 +614,7 @@ trait Ai
             $this->logToFile($logFile, "RUNNING ASSISTANT ON THREAD...");
             $runRequestData = [
                 'assistant_id' => $assistantId,
-                'additional_instructions' => ($assistant->allow_buttons ? "\nYou can attach up to 3 interactive buttons to your response using the format: {{BUTTON:Label}}. labels must be short (max 20 chars). Use buttons for choices, confirmations, or next steps. Example: {{BUTTON:Buy Basic}} {{BUTTON:More Info}}" : "") . "\nIf the user asks to speak to a human/agent, START response with {{HANDOFF}}.",
+                'additional_instructions' => ($assistant->allow_buttons ? "\nYou can attach up to 3 interactive buttons to your response using the format: {{BUTTON:Label}}. labels must be short (max 20 chars). Use buttons for choices, confirmations, or next steps. Example: {{BUTTON:Buy Basic}} {{BUTTON:More Info}}" : "") . "\n\n🚨 HANDOFF: START {{HANDOFF}} ONLY when: user SENDS image/screenshot (not just mentions), asks for human/agent, issue beyond capability, user spamming/abusive, technical/billing errors, refunds/disputes, or uncertain.\n\n💡 PAYMENT: If user says 'I paid' → Ask for screenshot first. When they SEND image → {{HANDOFF}}",
             ];
 
             // ✅ AUTO-UPGRADE REMOVED: Respecting user's model setting
