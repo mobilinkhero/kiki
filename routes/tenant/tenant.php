@@ -119,6 +119,7 @@ Route::middleware(['auth', TenantMiddleware::class, CheckTenantDeleted::class, E
 
             // Personal Assistant
             Route::get('/ai-assistant', \App\Livewire\Tenant\AI\PersonalAssistantManager::class)->name('ai-assistant');
+            Route::get('/ai/dashboard', \App\Livewire\Tenant\AI\AiPerformanceDashboard::class)->name('ai.dashboard');
 
             // Staff & Profile
             Route::get('/staff', StaffList::class)->name('staff.list');

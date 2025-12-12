@@ -2440,6 +2440,25 @@ trait WhatsApp
                     'assistant_name' => $aiResult['assistant_name'] ?? $assistant->name ?? 'N/A',
                 ]);
 
+                // ✅ ANALYTICS: Track AI Response
+                try {
+                    \App\Models\AiAnalytics::trackAiResponse([
+                        'tenant_id' => $this->tenant_id,
+                        'contact_id' => $contactData->id ?? null,
+                        'personal_assistant_id' => $assistant->id ?? null,
+                        'conversation_id' => $fromNumber,
+                        'user_message' => $userMessage,
+                        'ai_response' => $aiResponseText,
+                        'response_time_ms' => isset($aiResult['response_time']) ? (int) ($aiResult['response_time'] * 1000) : null,
+                        'was_successful' => $aiResult['status'] ?? false,
+                        'message_length' => strlen($userMessage),
+                        'business_category' => $assistant->use_case_tags[0] ?? null,
+                    ]);
+                } catch (\Exception $e) {
+                    // Silent fail for analytics - don't break the flow
+                    whatsapp_log('Analytics tracking failed', 'warning', ['error' => $e->getMessage()]);
+                }
+
                 // ✅ FEATURE: Check for Human Handoff
                 if (!empty($aiResult['handoff']) && $aiResult['handoff'] === true) {
                     $this->logFlowDebug('AI Assistant - Human Handoff Triggered');
@@ -2461,6 +2480,22 @@ trait WhatsApp
                         }
                     } catch (\Throwable $e) {
                         $this->logFlowDebug('AI Assistant - Handoff Error: ' . $e->getMessage());
+                    }
+
+                    // ✅ ANALYTICS: Track Handoff Event
+                    try {
+                        \App\Models\AiAnalytics::trackHandoff([
+                            'tenant_id' => $this->tenant_id,
+                            'contact_id' => $contactData->id ?? null,
+                            'personal_assistant_id' => $assistant->id ?? null,
+                            'conversation_id' => $contactPhone ?? null,
+                            'user_message' => $userMessage,
+                            'ai_response' => $aiResponseText,
+                            'handoff_reason' => $aiResult['handoff_reason'] ?? 'user_request',
+                            'ai_disabled_after' => true,
+                        ]);
+                    } catch (\Exception $e) {
+                        whatsapp_log('Handoff analytics tracking failed', 'warning', ['error' => $e->getMessage()]);
                     }
 
                     // Override response
