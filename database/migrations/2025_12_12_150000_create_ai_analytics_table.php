@@ -12,9 +12,9 @@ return new class extends Migration {
     {
         Schema::create('ai_analytics', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('tenant_id')->constrained()->onDelete('cascade');
-            $table->foreignId('contact_id')->nullable()->constrained('contacts')->onDelete('set null');
-            $table->foreignId('personal_assistant_id')->nullable()->constrained()->onDelete('set null');
+            $table->unsignedBigInteger('tenant_id');
+            $table->unsignedBigInteger('contact_id')->nullable();
+            $table->unsignedBigInteger('personal_assistant_id')->nullable();
 
             // Event tracking
             $table->string('event_type'); // 'ai_response', 'handoff', 'resolution', 'error'
