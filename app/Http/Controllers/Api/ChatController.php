@@ -98,6 +98,20 @@ class ChatController extends Controller
     {
         $type = $request->input('type', 'text');
 
+        // Fix: If type is 'text' (default) but a file is uploaded, infer the type from the file
+        // This handles cases where 'type' input might be missing or malformed in multipart requests
+        if ($type === 'text' && $request->hasFile('file')) {
+            $mime = $request->file('file')->getMimeType();
+            if (str_starts_with($mime, 'audio/'))
+                $type = 'audio';
+            elseif (str_starts_with($mime, 'video/'))
+                $type = 'video';
+            elseif (str_starts_with($mime, 'image/'))
+                $type = 'image';
+            else
+                $type = 'document';
+        }
+
         $rules = [
             'type' => 'nullable|string|in:text,image,video,document,audio',
         ];
