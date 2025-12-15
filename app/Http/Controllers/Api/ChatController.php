@@ -85,7 +85,7 @@ class ChatController extends Controller
     /**
      * Send Message
      *
-     * Send a message from vendor/staff to customer and save to database.
+     * Send a message from vendor/staff to customer via WhatsApp and save to database.
      *
      * @authenticated
      * @urlParam id integer required The Chat/Interaction ID.
@@ -122,7 +122,32 @@ class ChatController extends Controller
             return response()->json(['success' => false, 'message' => 'Chat not found'], 404);
         }
 
-        // Create message in database
+        // Send via WhatsApp using the WhatsApp trait
+        try {
+            $whatsapp = new class {
+                use \App\Traits\WhatsApp;
+            };
+
+            $whatsapp->setWaTenantId($user->tenant_id);
+            $whatsappApi = $whatsapp->loadConfig();
+
+            // Send text message via WhatsApp
+            $waResponse = $whatsappApi->sendTextMessage(
+                $chat->wa_no, // Customer's WhatsApp number
+                $request->input('message'),
+                false // Don't preview URL
+            );
+
+            $waMessageId = json_decode($waResponse->body())->messages[0]->id ?? null;
+            $status = 'sent';
+        } catch (\Exception $e) {
+            // If WhatsApp send fails, still save to database but mark as failed
+            $waMessageId = null;
+            $status = 'failed';
+            \Log::error('WhatsApp send failed: ' . $e->getMessage());
+        }
+
+        // Create message in database (even if WhatsApp send failed)
         $message = ChatMessage::fromTenant($subdomain)->create([
             'tenant_id' => $user->tenant_id,
             'interaction_id' => $id,
@@ -130,7 +155,8 @@ class ChatController extends Controller
             'message' => $request->input('message'),
             'type' => $request->input('type', 'text'),
             'time_sent' => now(),
-            'status' => 'sent',
+            'status' => $status,
+            'message_id' => $waMessageId,
             'staff_id' => $user->id,
             'is_read' => false,
         ]);
@@ -143,9 +169,12 @@ class ChatController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Message sent successfully',
+            'message' => $status === 'sent'
+                ? 'Message sent successfully via WhatsApp'
+                : 'Message saved but WhatsApp delivery failed',
             'data' => [
-                'message' => $message
+                'message' => $message,
+                'whatsapp_status' => $status
             ]
         ], 201);
     }
