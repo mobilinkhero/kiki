@@ -106,6 +106,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::prefix('chats')->group(function () {
         Route::get('/', [ChatController::class, 'index']);
         Route::get('/{id}/messages', [ChatController::class, 'messages']);
+        Route::post('/{id}/send', [ChatController::class, 'sendMessage']); // NEW: Send message
     });
 });
 

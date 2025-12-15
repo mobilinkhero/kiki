@@ -81,4 +81,72 @@ class ChatController extends Controller
             'data' => $messages
         ]);
     }
+
+    /**
+     * Send Message
+     *
+     * Send a message from vendor/staff to customer and save to database.
+     *
+     * @authenticated
+     * @urlParam id integer required The Chat/Interaction ID.
+     */
+    public function sendMessage(Request $request, int $id): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'message' => 'required|string|max:4096',
+            'type' => 'nullable|string|in:text,image,video,document,audio',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $user = $request->user();
+        if (!$user->tenant_id) {
+            return response()->json(['success' => false, 'message' => 'User is not associated with a tenant'], 403);
+        }
+
+        $subdomain = tenant_subdomain_by_tenant_id($user->tenant_id);
+
+        // Verify chat belongs to tenant
+        $chat = Chat::fromTenant($subdomain)
+            ->where('id', $id)
+            ->where('tenant_id', $user->tenant_id)
+            ->first();
+
+        if (!$chat) {
+            return response()->json(['success' => false, 'message' => 'Chat not found'], 404);
+        }
+
+        // Create message in database
+        $message = ChatMessage::fromTenant($subdomain)->create([
+            'tenant_id' => $user->tenant_id,
+            'interaction_id' => $id,
+            'sender_id' => 'staff_' . $user->id, // Mark as staff message
+            'message' => $request->input('message'),
+            'type' => $request->input('type', 'text'),
+            'time_sent' => now(),
+            'status' => 'sent',
+            'staff_id' => $user->id,
+            'is_read' => false,
+        ]);
+
+        // Update chat last message and time
+        $chat->update([
+            'last_message' => $request->input('message'),
+            'last_msg_time' => now(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Message sent successfully',
+            'data' => [
+                'message' => $message
+            ]
+        ], 201);
+    }
 }
