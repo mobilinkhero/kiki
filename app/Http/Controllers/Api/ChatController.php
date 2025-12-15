@@ -10,6 +10,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Netflie\WhatsAppCloudApi\WhatsAppCloudApi;
+use Netflie\WhatsAppCloudApi\Message\Media\LinkID;
 
 /**
  * @group Chat Management
@@ -95,10 +96,20 @@ class ChatController extends Controller
      */
     public function sendMessage(Request $request, int $id): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'message' => 'required|string|max:4096',
+        $type = $request->input('type', 'text');
+
+        $rules = [
             'type' => 'nullable|string|in:text,image,video,document,audio',
-        ]);
+        ];
+
+        if ($type === 'text') {
+            $rules['message'] = 'required|string|max:4096';
+        } else {
+            $rules['file'] = 'required|file|max:20480'; // 20MB limit
+            $rules['message'] = 'nullable|string|max:1024';
+        }
+
+        $validator = Validator::make($request->all(), $rules);
 
         if ($validator->fails()) {
             return response()->json([
@@ -115,7 +126,6 @@ class ChatController extends Controller
 
         $subdomain = tenant_subdomain_by_tenant_id($user->tenant_id);
 
-        // Verify chat belongs to tenant
         $chat = Chat::fromTenant($subdomain)
             ->where('id', $id)
             ->where('tenant_id', $user->tenant_id)
@@ -125,48 +135,99 @@ class ChatController extends Controller
             return response()->json(['success' => false, 'message' => 'Chat not found'], 404);
         }
 
-        // ✅ WORKING LOGIC - Same as website (WhatsAppWebhookController)
         $whatsapp_success = false;
         $waMessageId = null;
+        $storedFilename = null;
+        $mediaUrl = null;
+
+        // Handle File Upload
+        if ($request->hasFile('file') && $type !== 'text') {
+            $file = $request->file('file');
+            $extension = $file->getClientOriginalExtension();
+            $storedFilename = 'media_' . uniqid() . '.' . $extension;
+
+            // Save to public storage (same as incoming media)
+            \Illuminate\Support\Facades\Storage::disk('public')->putFileAs('whatsapp-attachments', $file, $storedFilename);
+
+            // Generate Public Proxy URL for WhatsApp to access
+            // This URL must be accessible from the internet (WhatsApp servers)
+            // Since we made /api/media/ public, this should work if the server is public.
+            // If localhost, this part might fail on WhatsApp side, but logic is correct.
+            $mediaUrl = "https://soft.chatvoo.com/api/media/" . $storedFilename;
+        }
 
         try {
-            // Initialize WhatsApp Cloud API client (EXACTLY like website does it - line 1442)
             $whatsappApi = new WhatsAppCloudApi([
                 'from_phone_number_id' => $chat->wa_no_id,
                 'access_token' => $this->setWaTenantId($user->tenant_id)->getToken(),
             ]);
 
-            // Send text message via WhatsApp
-            $response = $whatsappApi->sendTextMessage(
-                $chat->receiver_id, // Customer's WhatsApp number
-                $request->input('message')
-            );
+            $response = null;
 
-            // Decode the response (same as website - line 1473)
-            $response_data = $response->decodedBody();
+            if ($type === 'text') {
+                $response = $whatsappApi->sendTextMessage(
+                    $chat->receiver_id,
+                    $request->input('message')
+                );
+            } elseif ($type === 'image' && $mediaUrl) {
+                // Send Image
+                $response = $whatsappApi->sendImage(
+                    $chat->receiver_id,
+                    new LinkID($mediaUrl),
+                    $request->input('message') // Caption
+                );
+            } elseif ($type === 'audio' && $mediaUrl) {
+                // Send Audio
+                $response = $whatsappApi->sendAudio(
+                    $chat->receiver_id,
+                    new LinkID($mediaUrl)
+                );
+            } elseif ($type === 'video' && $mediaUrl) {
+                // Send Video
+                $response = $whatsappApi->sendVideo(
+                    $chat->receiver_id,
+                    new LinkID($mediaUrl),
+                    $request->input('message') // Caption
+                );
+            } elseif ($type === 'document' && $mediaUrl) {
+                // Send Document
+                // Use original filename or default
+                $filename = $request->hasFile('file') ? $request->file('file')->getClientOriginalName() : 'document.pdf';
 
-            // Store the message ID if available (same as website - line 1476)
-            if (isset($response_data['messages'][0]['id'])) {
-                $waMessageId = $response_data['messages'][0]['id'];
-                $whatsapp_success = true;
+                $response = $whatsappApi->sendDocument(
+                    $chat->receiver_id,
+                    new LinkID($mediaUrl),
+                    $filename,
+                    $request->input('message') // Caption/Description
+                );
             }
+
+            if ($response) {
+                $response_data = $response->decodedBody();
+                if (isset($response_data['messages'][0]['id'])) {
+                    $waMessageId = $response_data['messages'][0]['id'];
+                    $whatsapp_success = true;
+                }
+            }
+
         } catch (\Exception $e) {
             whatsapp_log('WhatsApp send failed from Android API', 'error', [
                 'to' => $chat->receiver_id,
+                'type' => $type,
                 'error' => $e->getMessage(),
             ], $e, $user->tenant_id);
         }
 
         $status = $whatsapp_success ? 'sent' : 'failed';
 
-
-        // Create message in database (even if WhatsApp send failed)
+        // Create message in database
         $message = ChatMessage::fromTenant($subdomain)->create([
             'tenant_id' => $user->tenant_id,
             'interaction_id' => $id,
-            'sender_id' => 'staff_' . $user->id, // Mark as staff message
-            'message' => $request->input('message'),
-            'type' => $request->input('type', 'text'),
+            'sender_id' => 'staff_' . $user->id,
+            'message' => $request->input('message'), // Caption or text
+            'type' => $type,
+            'url' => $storedFilename, // Save just the filename as DB expects
             'time_sent' => now(),
             'status' => $status,
             'message_id' => $waMessageId,
@@ -174,9 +235,10 @@ class ChatController extends Controller
             'is_read' => false,
         ]);
 
-        // Update chat last message and time
+        // Update chat last message
+        $displayMessage = $type === 'text' ? $request->input('message') : ucfirst($type) . ' message';
         $chat->update([
-            'last_message' => $request->input('message'),
+            'last_message' => $displayMessage,
             'last_msg_time' => now(),
         ]);
 
