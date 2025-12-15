@@ -122,24 +122,36 @@ class ChatController extends Controller
             return response()->json(['success' => false, 'message' => 'Chat not found'], 404);
         }
 
-        // Send via WhatsApp using the WhatsApp trait
+        // Send via WhatsApp using proper WhatsAppCloudApi (same as website)
         try {
-            $whatsapp = new class {
+            // Load tenant wa_settings using WhatsApp trait
+            $whatsappTrait = new class {
                 use \App\Traits\WhatsApp;
             };
 
-            $whatsapp->setWaTenantId($user->tenant_id);
-            $whatsappApi = $whatsapp->loadConfig();
+            $whatsappTrait->setWaTenantId($user->tenant_id);
+            $accessToken = $whatsappTrait->getToken();
+
+            if (!$accessToken) {
+                throw new \Exception('WhatsApp credentials not configured');
+            }
+
+            // Initialize WhatsAppCloudApi with tenant credentials
+            $whatsappApi = new \Netflie\WhatsAppCloudApi\WhatsAppCloudApi([
+                'from_phone_number_id' => $chat->wa_no_id,
+                'access_token' => $accessToken,
+            ]);
 
             // Send text message via WhatsApp
             $waResponse = $whatsappApi->sendTextMessage(
-                $chat->wa_no, // Customer's WhatsApp number
+                $chat->receiver_id, // Customer's WhatsApp number  
                 $request->input('message'),
                 false // Don't preview URL
             );
 
-            $waMessageId = json_decode($waResponse->body())->messages[0]->id ?? null;
-            $status = 'sent';
+            $responseData = $waResponse->decodedBody();
+            $waMessageId = $responseData['messages'][0]['id'] ?? null;
+            $status = $waMessageId ? 'sent' : 'failed';
         } catch (\Exception $e) {
             // If WhatsApp send fails, still save to database but mark as failed
             $waMessageId = null;
