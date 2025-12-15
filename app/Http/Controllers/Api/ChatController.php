@@ -247,7 +247,7 @@ class ChatController extends Controller
             'tenant_id' => $user->tenant_id,
             'interaction_id' => $id,
             'sender_id' => 'staff_' . $user->id,
-            'message' => $request->input('message'), // Caption or text
+            'message' => $request->input('message') ?? '', // Caption or text, default to empty string to prevent DB null error
             'type' => $type,
             'url' => $storedFilename, // Save just the filename as DB expects
             'time_sent' => now(),
