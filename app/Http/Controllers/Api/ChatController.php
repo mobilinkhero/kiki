@@ -155,19 +155,27 @@ class ChatController extends Controller
         $mediaUrl = null;
 
         // Handle File Upload
-        if ($request->hasFile('file') && $type !== 'text') {
-            $file = $request->file('file');
-            $extension = $file->getClientOriginalExtension();
-            $storedFilename = 'media_' . uniqid() . '.' . $extension;
+        try {
+            if ($request->hasFile('file') && $type !== 'text') {
+                $file = $request->file('file');
+                $extension = $file->getClientOriginalExtension();
+                $storedFilename = 'media_' . uniqid() . '.' . $extension;
 
-            // Save to public storage (same as incoming media)
-            \Illuminate\Support\Facades\Storage::disk('public')->putFileAs('whatsapp-attachments', $file, $storedFilename);
+                // Save to public storage (same as incoming media)
+                \Illuminate\Support\Facades\Storage::disk('public')->putFileAs('whatsapp-attachments', $file, $storedFilename);
 
-            // Generate Public Proxy URL for WhatsApp to access
-            // This URL must be accessible from the internet (WhatsApp servers)
-            // Since we made /api/media/ public, this should work if the server is public.
-            // If localhost, this part might fail on WhatsApp side, but logic is correct.
-            $mediaUrl = "https://soft.chatvoo.com/api/media/" . $storedFilename;
+                // Generate Public Proxy URL for WhatsApp to access
+                // This URL must be accessible from the internet (WhatsApp servers)
+                // Since we made /api/media/ public, this should work if the server is public.
+                // If localhost, this part might fail on WhatsApp side, but logic is correct.
+                $mediaUrl = "https://soft.chatvoo.com/api/media/" . $storedFilename;
+            }
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'File Upload Failed: ' . $e->getMessage(),
+                'line' => $e->getLine()
+            ], 500);
         }
 
         try {
