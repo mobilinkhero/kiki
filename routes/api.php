@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\TenantController;
 use App\Http\Controllers\Api\WebhookController;
 use App\Http\Controllers\Api\WhatsAppController;
 use App\Http\Controllers\Api\ChatController;
+use App\Http\Controllers\Api\MediaController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -29,6 +30,9 @@ Route::prefix('auth')->group(function () {
     Route::post('/reset-password', [AuthController::class, 'resetPassword']);
     Route::post('/verify-email', [AuthController::class, 'verifyEmail']);
 });
+
+// Public Media Route
+Route::get('/media/{filename}', [MediaController::class, 'serveMedia']);
 
 // Webhook routes (unauthenticated)
 Route::prefix('webhooks')->group(function () {
