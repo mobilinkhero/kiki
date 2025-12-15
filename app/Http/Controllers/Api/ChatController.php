@@ -5,17 +5,20 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Tenant\Chat;
 use App\Models\Tenant\ChatMessage;
+use App\Traits\WhatsApp;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Netflie\WhatsAppCloudApi\WhatsAppCloudApi;
 
 /**
  * @group Chat Management
  *
- * APIs for managing chats and messages
+ * APIs for managing chats and messages  
  */
 class ChatController extends Controller
 {
+    use WhatsApp;  // ✅ Use the WhatsApp trait!
     /**
      * List Chats
      *
@@ -122,42 +125,40 @@ class ChatController extends Controller
             return response()->json(['success' => false, 'message' => 'Chat not found'], 404);
         }
 
-        // Send via WhatsApp using proper WhatsAppCloudApi (same as website)
+        // ✅ WORKING LOGIC - Same as website (WhatsAppWebhookController)
+        $whatsapp_success = false;
+        $waMessageId = null;
+
         try {
-            // Load tenant wa_settings using WhatsApp trait
-            $whatsappTrait = new class {
-                use \App\Traits\WhatsApp;
-            };
-
-            $whatsappTrait->setWaTenantId($user->tenant_id);
-            $accessToken = $whatsappTrait->getToken();
-
-            if (!$accessToken) {
-                throw new \Exception('WhatsApp credentials not configured');
-            }
-
-            // Initialize WhatsAppCloudApi with tenant credentials
-            $whatsappApi = new \Netflie\WhatsAppCloudApi\WhatsAppCloudApi([
+            // Initialize WhatsApp Cloud API client (EXACTLY like website does it - line 1442)
+            $whatsappApi = new WhatsAppCloudApi([
                 'from_phone_number_id' => $chat->wa_no_id,
-                'access_token' => $accessToken,
+                'access_token' => $this->setWaTenantId($user->tenant_id)->getToken(),
             ]);
 
             // Send text message via WhatsApp
-            $waResponse = $whatsappApi->sendTextMessage(
-                $chat->receiver_id, // Customer's WhatsApp number  
-                $request->input('message'),
-                false // Don't preview URL
+            $response = $whatsappApi->sendTextMessage(
+                $chat->receiver_id, // Customer's WhatsApp number
+                $request->input('message')
             );
 
-            $responseData = $waResponse->decodedBody();
-            $waMessageId = $responseData['messages'][0]['id'] ?? null;
-            $status = $waMessageId ? 'sent' : 'failed';
+            // Decode the response (same as website - line 1473)
+            $response_data = $response->decodedBody();
+
+            // Store the message ID if available (same as website - line 1476)
+            if (isset($response_data['messages'][0]['id'])) {
+                $waMessageId = $response_data['messages'][0]['id'];
+                $whatsapp_success = true;
+            }
         } catch (\Exception $e) {
-            // If WhatsApp send fails, still save to database but mark as failed
-            $waMessageId = null;
-            $status = 'failed';
-            \Log::error('WhatsApp send failed: ' . $e->getMessage());
+            whatsapp_log('WhatsApp send failed from Android API', 'error', [
+                'to' => $chat->receiver_id,
+                'error' => $e->getMessage(),
+            ], $e, $user->tenant_id);
         }
+
+        $status = $whatsapp_success ? 'sent' : 'failed';
+
 
         // Create message in database (even if WhatsApp send failed)
         $message = ChatMessage::fromTenant($subdomain)->create([
