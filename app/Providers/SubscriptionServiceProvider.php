@@ -69,28 +69,28 @@ class SubscriptionServiceProvider extends ServiceProvider
             $settings = $app->make(PaymentSettings::class);
 
             // Register Razorpay only if enabled and configured
-            if ($settings->razorpay_enabled && ! empty($settings->razorpay_key_id) && ! empty($settings->razorpay_key_secret)) {
+            if ($settings->razorpay_enabled && !empty($settings->razorpay_key_id) && !empty($settings->razorpay_key_secret)) {
                 $manager->register('razorpay', function () use ($app) {
                     return $app->make(RazorpayPaymentGateway::class);
                 });
             }
 
             // Register PayPal only if enabled and configured
-            if ($settings->paypal_enabled && ! empty($settings->paypal_client_id) && ! empty($settings->paypal_client_secret)) {
+            if ($settings->paypal_enabled && !empty($settings->paypal_client_id) && !empty($settings->paypal_client_secret)) {
                 $manager->register('paypal', function () use ($app) {
                     return $app->make(PayPalPaymentGateway::class);
                 });
             }
 
             // Register Paystack only if enabled and configured
-            if ($settings->paystack_enabled && ! empty($settings->paystack_public_key) && ! empty($settings->paystack_secret_key)) {
+            if ($settings->paystack_enabled && !empty($settings->paystack_public_key) && !empty($settings->paystack_secret_key)) {
                 $manager->register('paystack', function () use ($app) {
                     return $app->make(PaystackPaymentGateway::class);
                 });
             }
 
             // Register Stripe only if enabled and configured
-            if ($settings->stripe_enabled && ! empty($settings->stripe_key) && ! empty($settings->stripe_secret)) {
+            if ($settings->stripe_enabled && !empty($settings->stripe_key) && !empty($settings->stripe_secret)) {
                 $manager->register('stripe', function () use ($app) {
                     return $app->make(StripePaymentGateway::class);
                 });
@@ -100,6 +100,17 @@ class SubscriptionServiceProvider extends ServiceProvider
             $manager->register('offline', function () use ($app) {
                 return $app->make(OfflinePaymentGateway::class);
             });
+
+            // Register Alfa Payment
+            if ($settings->alfa_enabled && !empty($settings->alfa_merchant_id)) {
+                $manager->register('alfa', function () use ($app, $settings) {
+                    return new \App\Services\PaymentGateways\AlfaPaymentGateway(
+                        $settings->alfa_merchant_id,
+                        $settings->alfa_store_id,
+                        $settings->alfa_merchant_hash
+                    );
+                });
+            }
 
             // Dispatch event for modules to register their payment gateways
             event(new PaymentGatewayRegistration($manager));
@@ -116,5 +127,7 @@ class SubscriptionServiceProvider extends ServiceProvider
     /**
      * Bootstrap any application services.
      */
-    public function boot(): void {}
+    public function boot(): void
+    {
+    }
 }

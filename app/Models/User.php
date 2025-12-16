@@ -85,7 +85,7 @@ class User extends Authenticatable implements MustVerifyEmail
 {
     use BelongsToTenant;
     use HasFactory;
-    use HasApiTokens;
+    // use HasApiTokens;
     use HasRoles;
     use Notifiable;
     use TracksFeatureUsage;
