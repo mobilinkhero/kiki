@@ -65,15 +65,13 @@ class AlfaController extends Controller
             'HS_MerchantHash' => $settings['payment.alfa_merchant_hash'],
             'HS_MerchantUsername' => $settings['payment.alfa_merchant_username'],
             'HS_MerchantPassword' => $settings['payment.alfa_merchant_password'],
-            'HS_IsRedirectionRequest' => 0, // 0 for Redirection to merchant page for token? No, guide says: "0 Or Merchants wants to handle the authentication token on the same page (1)". Wait.
-            // Guide: "This defines if a merchant wants to first redirect customers on a page where merchants will get authentication token (0) Or Merchants wants to handle the authentication token on the same page (1)"
-            // Actually, typically 1 means we handle the token POST back immediately. Let's assume standard flow where we want to receive the token on our ReturnURL.
+            'HS_IsRedirectionRequest' => 0,
             'HS_ChannelId' => '1001',
-            'HS_ReturnURL' => url(tenant_route('tenant.payment.alfa.return', [], false)), // Absolute URL
+            'HS_ReturnURL' => 'https://soft.chatvoo.com/payment/alfa/return', // Must match Alfa portal config exactly
             'HS_TransactionReferenceNumber' => $invoice->id . '_' . time(),
         ];
 
-        // Ensure ReturnURL is absolute and uses HTTPS
+        // Ensure ReturnURL uses HTTPS
         $info['HS_ReturnURL'] = str_replace('http://', 'https://', $info['HS_ReturnURL']);
 
         // Generate Hash
@@ -122,7 +120,7 @@ class AlfaController extends Controller
         $params = [
             'AuthToken' => $authToken,
             'ChannelId' => '1001',
-            'ReturnURL' => tenant_route('tenant.payment.alfa.callback'), // Final callback after payment
+            'ReturnURL' => 'https://soft.chatvoo.com/payment/alfa/callback', // Must match Alfa portal config
             'MerchantId' => $settings['payment.alfa_merchant_id'],
             'StoreId' => $settings['payment.alfa_store_id'],
             'MerchantHash' => $settings['payment.alfa_merchant_hash'],
