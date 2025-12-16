@@ -3,7 +3,7 @@
         'name' => 'laravel/laravel',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => '27e1fc5a084b5ae7d932d821edd157a51a8ac4ef',
+        'reference' => 'cced2d090ab5e4d9507789858fa4837d54b42d33',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -130,7 +130,7 @@
         'corbital/installer' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => 'bc0773b25c1804ba8eea31864a3c4859be00b366',
+            'reference' => '3059c72959845551846bf3e9458058819273c3f0',
             'type' => 'library',
             'install_path' => __DIR__ . '/../corbital/installer',
             'aliases' => array(),
@@ -139,7 +139,7 @@
         'corbital/laravel-emails' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '0869aeaf0409dfc22c50b63b7fec0cb2c018c9ff',
+            'reference' => '4d426e9f843f1326a338439ed6a22bc023e038f0',
             'type' => 'library',
             'install_path' => __DIR__ . '/../corbital/laravel-emails',
             'aliases' => array(),
@@ -148,7 +148,7 @@
         'corbital/module-manager' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => 'eb7e4bea80025ed3eeab76142d9a0e5578612a87',
+            'reference' => 'c37369ef9f4a5a5b99ec136146fde78a54fa93ef',
             'type' => 'library',
             'install_path' => __DIR__ . '/../corbital/module-manager',
             'aliases' => array(),
@@ -157,7 +157,7 @@
         'corbital/settings' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '3c835f6dce7eb06ac6f4e2d4e0a72b877663bf5e',
+            'reference' => 'dae7d31555e0fc8f5a366fe08b3d02c0e3763377',
             'type' => 'library',
             'install_path' => __DIR__ . '/../corbital/settings',
             'aliases' => array(),
@@ -799,7 +799,7 @@
         'laravel/laravel' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '27e1fc5a084b5ae7d932d821edd157a51a8ac4ef',
+            'reference' => 'cced2d090ab5e4d9507789858fa4837d54b42d33',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
@@ -858,6 +858,15 @@
             'install_path' => __DIR__ . '/../laravel/sail',
             'aliases' => array(),
             'dev_requirement' => true,
+        ),
+        'laravel/sanctum' => array(
+            'pretty_version' => 'v4.2.1',
+            'version' => '4.2.1.0',
+            'reference' => 'f5fb373be39a246c74a060f2cf2ae2c2145b3664',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../laravel/sanctum',
+            'aliases' => array(),
+            'dev_requirement' => false,
         ),
         'laravel/serializable-closure' => array(
             'pretty_version' => 'v2.0.7',

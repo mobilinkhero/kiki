@@ -225,6 +225,13 @@ Route::middleware(['auth', TenantMiddleware::class, CheckTenantDeleted::class, E
                 Route::get('/callback', [PaystackPaymentController::class, 'callback'])->name('callback');
             });
 
+            // Alfa Payment Gateway
+            Route::prefix('payment/alfa')->name('payment.alfa.')->group(function () {
+                Route::get('/checkout/{invoice}', [\App\Http\Controllers\PaymentGateways\AlfaController::class, 'checkout'])->name('checkout');
+                Route::post('/return/{invoice}', [\App\Http\Controllers\PaymentGateways\AlfaController::class, 'process'])->name('return')->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]); // Disable CSRF for external POST
+                Route::any('/callback/{invoice}', [\App\Http\Controllers\PaymentGateways\AlfaController::class, 'callback'])->name('callback')->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
+            });
+
             // manage campaign
             Route::get('/create', [ManageCampaigns::class, 'create'])->name('create');
             Route::post('campaign/store', [ManageCampaigns::class, 'store'])->name('store');

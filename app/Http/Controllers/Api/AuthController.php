@@ -109,6 +109,20 @@ class AuthController extends Controller
             ]);
         }
 
+        // Retrieve Pusher settings for this user's tenant
+        $pusherSettings = [];
+        if ($user->tenant_id) {
+            try {
+                $settings = tenant_settings_by_group('pusher', $user->tenant_id);
+                $pusherSettings = [
+                    'app_key' => $settings['app_key'] ?? '',
+                    'cluster' => $settings['cluster'] ?? '',
+                ];
+            } catch (\Exception $e) {
+                Log::error('Failed to fetch Pusher settings for login response', ['error' => $e->getMessage()]);
+            }
+        }
+
         $token = $user->createToken('API Token')->plainTextToken;
 
         return response()->json([
@@ -119,6 +133,7 @@ class AuthController extends Controller
                 'access_token' => $token,
                 'token_type' => 'Bearer',
                 'expires_in' => 3600,
+                'pusher_settings' => $pusherSettings,
             ],
         ]);
     }
