@@ -97,14 +97,18 @@ class AlfaController extends Controller
      * Process the Return from Alfa (Step 2 - Handshake Response)
      * This route receives the 'AuthToken' via GET/POST on the ReturnURL and then POSTs to SSO.
      */
-    public function process(Request $request, string $subdomain, $invoiceId)
+    public function process(Request $request, string $subdomain)
     {
         $settings = $this->getAlfaSettings();
 
         $authToken = $request->input('AuthToken');
+        $transactionRef = $request->input('TransactionReferenceNumber');
 
-        if (!$authToken) {
-            return redirect()->route('tenant.invoices.show', $invoiceId)->with('error', 'Payment failed: No Auth Token received.');
+        // Extract invoice ID from transaction reference (format: invoiceId_timestamp)
+        $invoiceId = explode('_', $transactionRef)[0] ?? null;
+
+        if (!$authToken || !$invoiceId) {
+            return back()->with('error', 'Payment failed: Invalid response from payment gateway.');
         }
 
         $invoice = Invoice::findOrFail($invoiceId);
@@ -118,7 +122,7 @@ class AlfaController extends Controller
         $params = [
             'AuthToken' => $authToken,
             'ChannelId' => '1001',
-            'ReturnURL' => tenant_route('tenant.payment.alfa.callback', ['invoice' => $invoice->id]), // Final callback after payment
+            'ReturnURL' => tenant_route('tenant.payment.alfa.callback'), // Final callback after payment
             'MerchantId' => $settings['payment.alfa_merchant_id'],
             'StoreId' => $settings['payment.alfa_store_id'],
             'MerchantHash' => $settings['payment.alfa_merchant_hash'],
@@ -141,10 +145,17 @@ class AlfaController extends Controller
     /**
      * Final Callback after payment (Success/Failure)
      */
-    public function callback(Request $request, string $subdomain, $invoiceId)
+    public function callback(Request $request, string $subdomain)
     {
         // Alfa redirects here after payment attempt.
-        // We usually receive a status code.
+        // Extract invoice ID from transaction reference
+        $transactionRef = $request->input('TransactionReferenceNumber');
+        $invoiceId = explode('_', $transactionRef)[0] ?? null;
+
+        if (!$invoiceId) {
+            return back()->with('error', 'Invalid payment response.');
+        }
+
         $responseCode = $request->input('ResponseCode');
         $description = $request->input('Description');
 
