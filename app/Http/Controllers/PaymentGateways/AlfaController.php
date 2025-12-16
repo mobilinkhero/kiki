@@ -186,27 +186,45 @@ class AlfaController extends Controller
 
     /**
      * Generate Request Hash for Alfa Payment Gateway
-     * Based on common Pakistani payment gateway hash patterns (HMAC-SHA256)
+     * Uses AES/CBC/PKCS7Padding as per Alfa documentation
      */
     private function generateRequestHash($params)
     {
-        $settings = $this->getAlfaSettings();
-        $merchantHash = $settings['payment.alfa_merchant_hash'];
-
         // Remove hash fields from params before generating hash
         $hashParams = $params;
         unset($hashParams['HS_RequestHash']);
         unset($hashParams['RequestHash']);
 
-        // Sort parameters alphabetically by key
-        ksort($hashParams);
+        // Build string in format: key=value&key=value
+        $mapString = '';
+        foreach ($hashParams as $key => $value) {
+            $mapString .= $key . '=' . $value . '&';
+        }
+        // Remove trailing &
+        $mapString = rtrim($mapString, '&');
 
-        // Concatenate values
-        $hashString = implode('&', $hashParams);
+        // TODO: CRITICAL - You need encryption keys from Alfa
+        // Contact Bank Alfalah to get:
+        // 1. Key1 (Encryption Key)
+        // 2. Key2 (IV - Initialization Vector)
+        // These are provided separately and NOT the same as Merchant Hash
 
-        // Generate HMAC-SHA256 hash
-        $hash = hash_hmac('sha256', $hashString, $merchantHash, false);
+        // For now, using Merchant Hash as key (THIS WILL FAIL)
+        // You MUST get the actual encryption keys from Alfa support
+        $settings = $this->getAlfaSettings();
+        $encryptionKey = $settings['payment.alfa_merchant_hash']; // WRONG - need actual Key1
+        $iv = substr($encryptionKey, 0, 16); // WRONG - need actual Key2
 
-        return $hash;
+        // AES-128-CBC encryption
+        $encrypted = openssl_encrypt(
+            $mapString,
+            'AES-128-CBC',
+            substr($encryptionKey, 0, 16), // Key must be 16 bytes for AES-128
+            OPENSSL_RAW_DATA,
+            $iv
+        );
+
+        // Base64 encode the result
+        return base64_encode($encrypted);
     }
 }
