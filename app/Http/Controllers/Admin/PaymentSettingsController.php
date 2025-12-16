@@ -12,7 +12,7 @@ class PaymentSettingsController extends Controller
 {
     public function showOfflineSettings(PaymentSettings $settings)
     {
-        if (! checkPermission('admin.payment_settings.view')) {
+        if (!checkPermission('admin.payment_settings.view')) {
             session()->flash('notification', [
                 'type' => 'danger',
                 'message' => t('access_denied_note'),
@@ -60,7 +60,7 @@ class PaymentSettingsController extends Controller
      */
     public function showStripeSettings(PaymentSettings $settings)
     {
-        if (! checkPermission('admin.payment_settings.view')) {
+        if (!checkPermission('admin.payment_settings.view')) {
             session()->flash('notification', [
                 'type' => 'danger',
                 'message' => t('access_denied_note'),
@@ -110,7 +110,7 @@ class PaymentSettingsController extends Controller
                 'stripe_secret' => $request->stripe_secret ?? '',
             ]);
 
-            if (! $request->stripe_enabled) {
+            if (!$request->stripe_enabled) {
                 PaymentWebhook::where('provider', 'stripe')->delete();
             }
 
@@ -141,7 +141,7 @@ class PaymentSettingsController extends Controller
      */
     public function showRazorpaySettings(PaymentSettings $settings)
     {
-        if (! checkPermission('admin.payment_settings.view')) {
+        if (!checkPermission('admin.payment_settings.view')) {
             session()->flash('notification', [
                 'type' => 'danger',
                 'message' => t('access_denied_note'),
@@ -222,7 +222,7 @@ class PaymentSettingsController extends Controller
      */
     public function showPayPalSettings(PaymentSettings $settings)
     {
-        if (! checkPermission('admin.payment_settings.view')) {
+        if (!checkPermission('admin.payment_settings.view')) {
             session()->flash('notification', [
                 'type' => 'danger',
                 'message' => t('access_denied_note'),
@@ -295,7 +295,7 @@ class PaymentSettingsController extends Controller
      */
     public function showPaystackSettings(PaymentSettings $settings)
     {
-        if (! checkPermission('admin.payment_settings.view')) {
+        if (!checkPermission('admin.payment_settings.view')) {
             session()->flash('notification', [
                 'type' => 'danger',
                 'message' => t('access_denied_note'),
@@ -343,6 +343,96 @@ class PaymentSettingsController extends Controller
 
             if ($request->paystack_enabled) {
                 set_setting('payment.default_gateway', 'paystack');
+            }
+
+            session()->flash('notification', [
+                'type' => 'success',
+                'message' => t('settings_saved_successfully'),
+            ]);
+
+            return redirect()->to(route('admin.payment-settings'));
+        }
+
+        session()->flash('notification', [
+            'type' => 'danger',
+            'message' => t('access_denied_note'),
+        ]);
+
+        return redirect()->to(route('admin.dashboard'));
+    }
+
+    /**
+     * Show Alfa payment settings.
+     */
+    public function showAlfaSettings(PaymentSettings $settings)
+    {
+        if (!checkPermission('admin.payment_settings.view')) {
+            session()->flash('notification', [
+                'type' => 'danger',
+                'message' => t('access_denied_note'),
+            ]);
+
+            return redirect()->to(route('admin.dashboard'));
+        }
+
+        return view('admin.settings.payment.alfa', [
+            'settings' => $settings,
+        ]);
+    }
+
+    /**
+     * Update Alfa payment settings.
+     */
+    public function updateAlfaSettings(Request $request)
+    {
+        if (checkPermission('admin.payment_settings.edit')) {
+            $request->validate([
+                'alfa_enabled' => ['string', 'in:on,off'],
+                'alfa_mode' => ['required', 'string', 'in:sandbox,production'],
+                'alfa_merchant_id' => [
+                    'required_if:alfa_enabled,on',
+                    'string',
+                    'max:255',
+                    new PurifiedInput(t('sql_injection_error')),
+                ],
+                'alfa_store_id' => [
+                    'required_if:alfa_enabled,on',
+                    'string',
+                    'max:255',
+                    new PurifiedInput(t('sql_injection_error')),
+                ],
+                'alfa_merchant_hash' => [
+                    'required_if:alfa_enabled,on',
+                    'string',
+                    'max:255',
+                    new PurifiedInput(t('sql_injection_error')),
+                ],
+                'alfa_merchant_username' => [
+                    'required_if:alfa_enabled,on',
+                    'string',
+                    'max:255',
+                    new PurifiedInput(t('sql_injection_error')),
+                ],
+                'alfa_merchant_password' => [
+                    'required_if:alfa_enabled,on',
+                    'string',
+                    'max:255',
+                    new PurifiedInput(t('sql_injection_error')),
+                ],
+            ]);
+
+            set_settings_batch('payment', [
+                'alfa_enabled' => $request->has('alfa_enabled'),
+                'alfa_mode' => $request->alfa_mode ?? 'sandbox',
+                'alfa_merchant_id' => $request->alfa_merchant_id ?? '',
+                'alfa_store_id' => $request->alfa_store_id ?? '',
+                'alfa_merchant_hash' => $request->alfa_merchant_hash ?? '',
+                'alfa_merchant_username' => $request->alfa_merchant_username ?? '',
+                'alfa_merchant_password' => $request->alfa_merchant_password ?? '',
+            ]);
+
+            if ($request->alfa_enabled) {
+                set_setting('payment.default_gateway', 'alfa');
             }
 
             session()->flash('notification', [
