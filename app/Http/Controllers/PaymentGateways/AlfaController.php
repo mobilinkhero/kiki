@@ -185,12 +185,28 @@ class AlfaController extends Controller
     }
 
     /**
-     * Placeholder for Hash Generation
+     * Generate Request Hash for Alfa Payment Gateway
+     * Based on common Pakistani payment gateway hash patterns (HMAC-SHA256)
      */
     private function generateRequestHash($params)
     {
-        // TODO: Implement actual encryption logic provided by Alfa SDK/Sample Code.
-        // Usually involves: AES/HMAC of concatenated string.
-        return 'DUMMY_HASH_NEED_IMPLEMENTATION';
+        $settings = $this->getAlfaSettings();
+        $merchantHash = $settings['payment.alfa_merchant_hash'];
+
+        // Remove hash fields from params before generating hash
+        $hashParams = $params;
+        unset($hashParams['HS_RequestHash']);
+        unset($hashParams['RequestHash']);
+
+        // Sort parameters alphabetically by key
+        ksort($hashParams);
+
+        // Concatenate values
+        $hashString = implode('&', $hashParams);
+
+        // Generate HMAC-SHA256 hash
+        $hash = hash_hmac('sha256', $hashString, $merchantHash, false);
+
+        return $hash;
     }
 }
