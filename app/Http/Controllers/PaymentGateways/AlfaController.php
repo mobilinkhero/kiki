@@ -69,12 +69,12 @@ class AlfaController extends Controller
             // Guide: "This defines if a merchant wants to first redirect customers on a page where merchants will get authentication token (0) Or Merchants wants to handle the authentication token on the same page (1)"
             // Actually, typically 1 means we handle the token POST back immediately. Let's assume standard flow where we want to receive the token on our ReturnURL.
             'HS_ChannelId' => '1001',
-            'HS_ReturnURL' => tenant_route('tenant.payment.alfa.return', ['invoice' => $invoice->id], false), // Must be absolute? Route helper returns absolute usually.
+            'HS_ReturnURL' => url(tenant_route('tenant.payment.alfa.return', [], false)), // Absolute URL
             'HS_TransactionReferenceNumber' => $invoice->id . '_' . time(),
         ];
 
-        // We ensure ReturnURL is absolute public URL
-        $info['HS_ReturnURL'] = str_replace('http://', 'https://', $info['HS_ReturnURL']); // Ensure secure if behind proxy
+        // Ensure ReturnURL is absolute and uses HTTPS
+        $info['HS_ReturnURL'] = str_replace('http://', 'https://', $info['HS_ReturnURL']);
 
         // Generate Hash
         // NOTE: The exact hashing algorithm is missing from the guide ("See Encryption method in the Sample code attached").
