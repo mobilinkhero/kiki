@@ -3491,7 +3491,7 @@ class WhatsAppWebhookController extends Controller
                 ]);
 
                 try {
-                    $contact = \App\Models\Tenant\Contact::find($chatId);
+                    $contact = \App\Models\Contact::find($chatId);
 
                     if (!$contact) {
                         \Log::channel('push_notification')->warning('⚠️ Contact not found', ['chat_id' => $chatId]);
@@ -3540,17 +3540,11 @@ class WhatsAppWebhookController extends Controller
                                 }
                             }
                         } else {
-                            // No agent assigned - send to ALL users in THIS TENANT with FCM tokens
-                            \Log::channel('push_notification')->info('ℹ️ No agent assigned - sending to all users in tenant', [
-                                'tenant_id' => $contact->tenant_id,
-                            ]);
+                            // No agent assigned - send to ALL users with FCM tokens
+                            \Log::channel('push_notification')->info('ℹ️ No agent assigned - sending to all users with FCM tokens');
 
-                            $usersWithTokens = \App\Models\User::where('tenant_id', $contact->tenant_id)
-                                ->whereNotNull('fcm_token')
-                                ->get();
-
-                            \Log::channel('push_notification')->info('👥 Found users with FCM tokens in tenant', [
-                                'tenant_id' => $contact->tenant_id,
+                            $usersWithTokens = \App\Models\User::whereNotNull('fcm_token')->get();
+                            \Log::channel('push_notification')->info('👥 Found users with FCM tokens', [
                                 'count' => $usersWithTokens->count(),
                             ]);
 
@@ -3580,7 +3574,6 @@ class WhatsAppWebhookController extends Controller
                             }
 
                             \Log::channel('push_notification')->info('📊 Notification broadcast complete', [
-                                'tenant_id' => $contact->tenant_id,
                                 'total_users' => $usersWithTokens->count(),
                                 'sent_successfully' => $sentCount,
                             ]);
