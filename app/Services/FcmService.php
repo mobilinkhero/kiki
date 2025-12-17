@@ -19,16 +19,8 @@ class FcmService
     private function getAccessToken()
     {
         if (!file_exists($this->serviceAccountPath)) {
-            \Log::channel('push_notification')->error('❌ Firebase service account file not found', [
-                'path' => $this->serviceAccountPath,
-                'exists' => file_exists($this->serviceAccountPath),
-            ]);
             return null;
         }
-
-        \Log::channel('push_notification')->info('✅ Loading service account file', [
-            'path' => $this->serviceAccountPath,
-        ]);
 
         $serviceAccount = json_decode(file_get_contents($this->serviceAccountPath), true);
 
@@ -74,14 +66,6 @@ class FcmService
 
         $result = json_decode($response, true);
 
-        if (isset($result['access_token'])) {
-            \Log::channel('push_notification')->info('✅ Got OAuth access token');
-        } else {
-            \Log::channel('push_notification')->error('❌ Failed to get OAuth token', [
-                'response' => $result,
-            ]);
-        }
-
         return $result['access_token'] ?? null;
     }
 
@@ -95,25 +79,12 @@ class FcmService
      */
     public function sendNotification($fcmToken, $title, $body, $data = [], $imageUrl = null)
     {
-        \Log::channel('push_notification')->info('🔔 ========== STARTING NOTIFICATION SEND ==========');
-        \Log::channel('push_notification')->info('📱 Target Device', [
-            'fcm_token_preview' => substr($fcmToken, 0, 30) . '...',
-        ]);
-        \Log::channel('push_notification')->info('📝 Notification Content', [
-            'title' => $title,
-            'body' => substr($body, 0, 100),
-            'data' => $data,
-            'image_url' => $imageUrl,
-        ]);
-
         if (empty($fcmToken)) {
-            \Log::channel('push_notification')->error('❌ FCM token is empty - ABORTING');
             return false;
         }
 
         $accessToken = $this->getAccessToken();
         if (!$accessToken) {
-            \Log::channel('push_notification')->error('❌ Failed to get FCM access token - ABORTING');
             return false;
         }
 
@@ -144,17 +115,6 @@ class FcmService
             ]
         ];
 
-        \Log::channel('push_notification')->info('📤 Sending to FCM API', [
-            'url' => $url,
-            'project_id' => $this->projectId,
-            'message_structure' => $message,
-        ]);
-
-        $headers = [
-            'Authorization: Bearer ' . substr($accessToken, 0, 20) . '...',
-            'Content-Type: application/json',
-        ];
-
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_POST, true);
@@ -170,34 +130,13 @@ class FcmService
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 
         if (curl_errno($ch)) {
-            \Log::channel('push_notification')->error('❌ CURL ERROR', [
-                'error' => curl_error($ch),
-                'errno' => curl_errno($ch),
-            ]);
             curl_close($ch);
             return false;
         }
 
         curl_close($ch);
 
-        $response = json_decode($result, true);
-
-        \Log::channel('push_notification')->info('📥 FCM Response', [
-            'http_code' => $httpCode,
-            'response' => $response,
-            'raw_result' => $result,
-        ]);
-
-        if ($httpCode === 200) {
-            \Log::channel('push_notification')->info('✅ ========== NOTIFICATION SENT SUCCESSFULLY ==========');
-            return true;
-        } else {
-            \Log::channel('push_notification')->error('❌ ========== NOTIFICATION FAILED ==========', [
-                'http_code' => $httpCode,
-                'error_details' => $response,
-            ]);
-            return false;
-        }
+        return $httpCode === 200;
     }
 
     /**
@@ -205,10 +144,6 @@ class FcmService
      */
     public function sendToMultiple($fcmTokens, $title, $body, $data = [])
     {
-        \Log::channel('push_notification')->info('📢 Sending to multiple devices', [
-            'device_count' => count($fcmTokens),
-        ]);
-
         $results = [];
         foreach ($fcmTokens as $token) {
             $results[] = $this->sendNotification($token, $title, $body, $data);

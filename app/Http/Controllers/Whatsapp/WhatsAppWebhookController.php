@@ -4056,11 +4056,7 @@ class WhatsAppWebhookController extends Controller
                 return;
             }
 
-            \Log::channel('push_notification')->info('🎯 ========== NEW MESSAGE FROM WEBHOOK ==========', [
-                'from' => $from,
-                'tenant_id' => $this->tenant_id,
-                'timestamp' => now()->toDateTimeString(),
-            ]);
+
 
             // Get subdomain for tenant
             $subdomain = tenant_subdomain_by_tenant_id($this->tenant_id);
@@ -4071,7 +4067,7 @@ class WhatsAppWebhookController extends Controller
                 ->first();
 
             if (!$chat) {
-                \Log::channel('push_notification')->warning('⚠️ Chat not found for phone', ['phone' => $from]);
+
                 return;
             }
 
@@ -4081,18 +4077,11 @@ class WhatsAppWebhookController extends Controller
                 ->first();
 
             if (!$contact) {
-                \Log::channel('push_notification')->warning('⚠️ Contact not found for chat', [
-                    'chat_id' => $chat->id,
-                    'type_id' => $chat->type_id
-                ]);
+
                 return;
             }
 
-            \Log::channel('push_notification')->info('✅ Contact found', [
-                'contact_id' => $contact->id,
-                'contact_name' => $contact->firstname . ' ' . $contact->lastname,
-                'assigned_agent_id' => $contact->assigned_id,
-            ]);
+
 
             // Get message type and content
             $messageType = $message['type'] ?? 'text';
@@ -4121,10 +4110,7 @@ class WhatsAppWebhookController extends Controller
                 $agent = \App\Models\User::find($contact->assigned_id);
 
                 if ($agent && $agent->fcm_token) {
-                    \Log::channel('push_notification')->info('🚀 Sending to assigned agent', [
-                        'agent_id' => $agent->id,
-                        'agent_name' => ($agent->firstname ?? '') . ' ' . ($agent->lastname ?? ''),
-                    ]);
+
 
                     $contactName = trim(($contact->firstname ?? '') . ' ' . ($contact->lastname ?? '')) ?: 'New Message';
                     if ($contact->phone) {
@@ -4145,7 +4131,7 @@ class WhatsAppWebhookController extends Controller
                 }
             } else {
                 // Send to all users with FCM tokens
-                \Log::channel('push_notification')->info('📢 No agent assigned - broadcasting to all users');
+
 
                 $contactName = trim(($contact->firstname ?? '') . ' ' . ($contact->lastname ?? '')) ?: 'New Message';
                 if ($contact->phone) {
@@ -4154,9 +4140,7 @@ class WhatsAppWebhookController extends Controller
                 $usersWithTokens = \App\Models\User::whereNotNull('fcm_token')->get();
 
                 foreach ($usersWithTokens as $user) {
-                    \Log::channel('push_notification')->info('📤 Sending to user', [
-                        'user_id' => $user->id,
-                    ]);
+
 
                     $fcmService->sendNotification(
                         $user->fcm_token,
@@ -4173,11 +4157,7 @@ class WhatsAppWebhookController extends Controller
             }
 
         } catch (\Exception $e) {
-            \Log::channel('push_notification')->error('❌ FCM Exception', [
-                'error' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-            ]);
+
         }
     }
 
