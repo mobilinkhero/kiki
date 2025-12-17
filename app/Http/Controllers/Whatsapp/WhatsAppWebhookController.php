@@ -4109,6 +4109,9 @@ class WhatsAppWebhookController extends Controller
                     ]);
 
                     $contactName = trim(($contact->firstname ?? '') . ' ' . ($contact->lastname ?? '')) ?: 'New Message';
+                    if ($contact->phone) {
+                        $contactName .= ' (' . $contact->phone . ')';
+                    }
 
                     $fcmService->sendNotification(
                         $agent->fcm_token,
@@ -4126,6 +4129,9 @@ class WhatsAppWebhookController extends Controller
                 \Log::channel('push_notification')->info('📢 No agent assigned - broadcasting to all users');
 
                 $contactName = trim(($contact->firstname ?? '') . ' ' . ($contact->lastname ?? '')) ?: 'New Message';
+                if ($contact->phone) {
+                    $contactName .= ' (' . $contact->phone . ')';
+                }
                 $usersWithTokens = \App\Models\User::whereNotNull('fcm_token')->get();
 
                 foreach ($usersWithTokens as $user) {
