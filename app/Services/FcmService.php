@@ -130,11 +130,27 @@ class FcmService
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 
         if (curl_errno($ch)) {
+            $error = curl_error($ch);
             curl_close($ch);
+            \Log::error('FCM CURL Error', ['error' => $error]);
             return false;
         }
 
         curl_close($ch);
+
+        $response = json_decode($result, true);
+
+        if ($httpCode !== 200) {
+            \Log::error('FCM Failed', [
+                'http_code' => $httpCode,
+                'response' => $response,
+                'token_preview' => substr($fcmToken, 0, 20)
+            ]);
+        } else {
+            \Log::info('FCM Success', [
+                'token_preview' => substr($fcmToken, 0, 20)
+            ]);
+        }
 
         return $httpCode === 200;
     }
