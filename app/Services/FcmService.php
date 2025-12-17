@@ -2,8 +2,6 @@
 
 namespace App\Services;
 
-use Illuminate\Support\Facades\Log;
-
 class FcmService
 {
     private $projectId;
@@ -75,6 +73,15 @@ class FcmService
         curl_close($ch);
 
         $result = json_decode($response, true);
+
+        if (isset($result['access_token'])) {
+            \Log::channel('push_notification')->info('✅ Got OAuth access token');
+        } else {
+            \Log::channel('push_notification')->error('❌ Failed to get OAuth token', [
+                'response' => $result,
+            ]);
+        }
+
         return $result['access_token'] ?? null;
     }
 
@@ -88,14 +95,24 @@ class FcmService
      */
     public function sendNotification($fcmToken, $title, $body, $data = [])
     {
+        \Log::channel('push_notification')->info('🔔 ========== STARTING NOTIFICATION SEND ==========');
+        \Log::channel('push_notification')->info('📱 Target Device', [
+            'fcm_token_preview' => substr($fcmToken, 0, 30) . '...',
+        ]);
+        \Log::channel('push_notification')->info('📝 Notification Content', [
+            'title' => $title,
+            'body' => substr($body, 0, 100),
+            'data' => $data,
+        ]);
+
         if (empty($fcmToken)) {
-            Log::error('FCM token is empty');
+            \Log::channel('push_notification')->error('❌ FCM token is empty - ABORTING');
             return false;
         }
 
         $accessToken = $this->getAccessToken();
         if (!$accessToken) {
-            Log::error('Failed to get FCM access token');
+            \Log::channel('push_notification')->error('❌ Failed to get FCM access token - ABORTING');
             return false;
         }
 
@@ -108,7 +125,7 @@ class FcmService
                     'title' => $title,
                     'body' => substr($body, 0, 100),
                 ],
-                'data' => array_map('strval', $data), // FCM requires all data values to be strings
+                'data' => array_map('strval', $data),
                 'android' => [
                     'priority' => 'high',
                     'notification' => [
@@ -119,15 +136,24 @@ class FcmService
             ]
         ];
 
+        \Log::channel('push_notification')->info('📤 Sending to FCM API', [
+            'url' => $url,
+            'project_id' => $this->projectId,
+            'message_structure' => $message,
+        ]);
+
         $headers = [
-            'Authorization: Bearer ' . $accessToken,
+            'Authorization: Bearer ' . substr($accessToken, 0, 20) . '...',
             'Content-Type: application/json',
         ];
 
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Authorization: Bearer ' . $accessToken,
+            'Content-Type: application/json',
+        ]);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($message));
@@ -136,7 +162,10 @@ class FcmService
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 
         if (curl_errno($ch)) {
-            Log::error('FCM curl error: ' . curl_error($ch));
+            \Log::channel('push_notification')->error('❌ CURL ERROR', [
+                'error' => curl_error($ch),
+                'errno' => curl_errno($ch),
+            ]);
             curl_close($ch);
             return false;
         }
@@ -145,13 +174,19 @@ class FcmService
 
         $response = json_decode($result, true);
 
+        \Log::channel('push_notification')->info('📥 FCM Response', [
+            'http_code' => $httpCode,
+            'response' => $response,
+            'raw_result' => $result,
+        ]);
+
         if ($httpCode === 200) {
-            Log::info('FCM notification sent successfully', ['response' => $response]);
+            \Log::channel('push_notification')->info('✅ ========== NOTIFICATION SENT SUCCESSFULLY ==========');
             return true;
         } else {
-            Log::error('FCM notification failed', [
+            \Log::channel('push_notification')->error('❌ ========== NOTIFICATION FAILED ==========', [
                 'http_code' => $httpCode,
-                'response' => $response
+                'error_details' => $response,
             ]);
             return false;
         }
@@ -162,6 +197,10 @@ class FcmService
      */
     public function sendToMultiple($fcmTokens, $title, $body, $data = [])
     {
+        \Log::channel('push_notification')->info('📢 Sending to multiple devices', [
+            'device_count' => count($fcmTokens),
+        ]);
+
         $results = [];
         foreach ($fcmTokens as $token) {
             $results[] = $this->sendNotification($token, $title, $body, $data);
