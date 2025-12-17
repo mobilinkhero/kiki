@@ -66,6 +66,14 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/subscription', [TenantController::class, 'subscription']);
     });
 
+    // Chat AI Management
+    Route::prefix('chats/{chatId}/ai')->group(function () {
+        Route::post('/toggle', [\App\Http\Controllers\Api\ChatAiController::class, 'toggleAi']);
+        Route::post('/enable', [\App\Http\Controllers\Api\ChatAiController::class, 'enableAi']);
+        Route::post('/disable', [\App\Http\Controllers\Api\ChatAiController::class, 'disableAi']);
+        Route::get('/status', [\App\Http\Controllers\Api\ChatAiController::class, 'getAiStatus']);
+    });
+
     // Contact management
     Route::prefix('contacts')->group(function () {
         Route::get('/', [ContactController::class, 'index']);
