@@ -184,7 +184,7 @@ class AlfaController extends Controller
 
     /**
      * Generate Request Hash for Alfa Payment Gateway
-     * Uses AES/CBC/PKCS7Padding as per Alfa documentation
+     * Uses AES-128-CBC encryption as per Alfa documentation
      */
     private function generateRequestHash($params)
     {
@@ -201,25 +201,17 @@ class AlfaController extends Controller
         // Remove trailing &
         $mapString = rtrim($mapString, '&');
 
-        // TODO: CRITICAL - You need encryption keys from Alfa
-        // Contact Bank Alfalah to get:
-        // 1. Key1 (Encryption Key)
-        // 2. Key2 (IV - Initialization Vector)
-        // These are provided separately and NOT the same as Merchant Hash
-
-        // For now, using Merchant Hash as key (THIS WILL FAIL)
-        // You MUST get the actual encryption keys from Alfa support
-        $settings = $this->getAlfaSettings();
-        $encryptionKey = $settings['payment.alfa_merchant_hash']; // WRONG - need actual Key1
-        $iv = substr($encryptionKey, 0, 16); // WRONG - need actual Key2
+        // Alfa's encryption keys (provided by Bank Alfalah)
+        $key1 = 'dZUc9QUgPQP8pnKY'; // Encryption Key
+        $key2 = '9956991048721627'; // IV (Initialization Vector)
 
         // AES-128-CBC encryption
         $encrypted = openssl_encrypt(
             $mapString,
             'AES-128-CBC',
-            substr($encryptionKey, 0, 16), // Key must be 16 bytes for AES-128
+            $key1,
             OPENSSL_RAW_DATA,
-            $iv
+            $key2
         );
 
         // Base64 encode the result
