@@ -6,55 +6,124 @@ use Illuminate\Support\Facades\Log;
 
 class FcmService
 {
-    private $serverKey;
-    private $fcmUrl = 'https://fcm.googleapis.com/fcm/send';
+    private $projectId;
+    private $serviceAccountPath;
 
     public function __construct()
     {
-        $this->serverKey = env('FCM_SERVER_KEY');
+        $this->projectId = env('FCM_PROJECT_ID', 'tptp-18e5a');
+        $this->serviceAccountPath = storage_path('app/firebase-service-account.json');
     }
 
     /**
-     * Send push notification to a specific device
+     * Get OAuth 2.0 access token from service account
+     */
+    private function getAccessToken()
+    {
+        if (!file_exists($this->serviceAccountPath)) {
+            Log::error('Firebase service account file not found at: ' . $this->serviceAccountPath);
+            return null;
+        }
+
+        $serviceAccount = json_decode(file_get_contents($this->serviceAccountPath), true);
+
+        $now = time();
+        $payload = [
+            'iss' => $serviceAccount['client_email'],
+            'sub' => $serviceAccount['client_email'],
+            'aud' => 'https://oauth2.googleapis.com/token',
+            'iat' => $now,
+            'exp' => $now + 3600,
+            'scope' => 'https://www.googleapis.com/auth/firebase.messaging'
+        ];
+
+        // Create JWT
+        $header = json_encode(['alg' => 'RS256', 'typ' => 'JWT']);
+        $payload = json_encode($payload);
+
+        $base64UrlHeader = $this->base64UrlEncode($header);
+        $base64UrlPayload = $this->base64UrlEncode($payload);
+
+        $signature = '';
+        openssl_sign(
+            $base64UrlHeader . '.' . $base64UrlPayload,
+            $signature,
+            $serviceAccount['private_key'],
+            'SHA256'
+        );
+
+        $base64UrlSignature = $this->base64UrlEncode($signature);
+        $jwt = $base64UrlHeader . '.' . $base64UrlPayload . '.' . $base64UrlSignature;
+
+        // Exchange JWT for access token
+        $ch = curl_init('https://oauth2.googleapis.com/token');
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query([
+            'grant_type' => 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+            'assertion' => $jwt
+        ]));
+
+        $response = curl_exec($ch);
+        curl_close($ch);
+
+        $result = json_decode($response, true);
+        return $result['access_token'] ?? null;
+    }
+
+    private function base64UrlEncode($data)
+    {
+        return rtrim(strtr(base64_encode($data), '+/', '-_'), '=');
+    }
+
+    /**
+     * Send push notification to a specific device using FCM HTTP v1 API
      */
     public function sendNotification($fcmToken, $title, $body, $data = [])
     {
-        if (empty($this->serverKey)) {
-            Log::error('FCM_SERVER_KEY not configured');
-            return false;
-        }
-
         if (empty($fcmToken)) {
             Log::error('FCM token is empty');
             return false;
         }
 
-        $notification = [
-            'title' => $title,
-            'body' => substr($body, 0, 100),
-            'sound' => 'default',
-            'badge' => '1',
-        ];
+        $accessToken = $this->getAccessToken();
+        if (!$accessToken) {
+            Log::error('Failed to get FCM access token');
+            return false;
+        }
 
-        $payload = [
-            'to' => $fcmToken,
-            'notification' => $notification,
-            'data' => $data,
-            'priority' => 'high',
+        $url = "https://fcm.googleapis.com/v1/projects/{$this->projectId}/messages:send";
+
+        $message = [
+            'message' => [
+                'token' => $fcmToken,
+                'notification' => [
+                    'title' => $title,
+                    'body' => substr($body, 0, 100),
+                ],
+                'data' => array_map('strval', $data), // FCM requires all data values to be strings
+                'android' => [
+                    'priority' => 'high',
+                    'notification' => [
+                        'sound' => 'default',
+                        'channel_id' => 'chat_messages',
+                    ]
+                ]
+            ]
         ];
 
         $headers = [
-            'Authorization: key=' . $this->serverKey,
+            'Authorization: Bearer ' . $accessToken,
             'Content-Type: application/json',
         ];
 
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $this->fcmUrl);
+        curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($message));
 
         $result = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -69,7 +138,7 @@ class FcmService
 
         $response = json_decode($result, true);
 
-        if ($httpCode === 200 && isset($response['success']) && $response['success'] > 0) {
+        if ($httpCode === 200) {
             Log::info('FCM notification sent successfully', ['response' => $response]);
             return true;
         } else {
@@ -86,41 +155,10 @@ class FcmService
      */
     public function sendToMultiple($fcmTokens, $title, $body, $data = [])
     {
-        if (empty($this->serverKey)) {
-            Log::error('FCM_SERVER_KEY not configured');
-            return false;
+        $results = [];
+        foreach ($fcmTokens as $token) {
+            $results[] = $this->sendNotification($token, $title, $body, $data);
         }
-
-        $notification = [
-            'title' => $title,
-            'body' => substr($body, 0, 100),
-            'sound' => 'default',
-            'badge' => '1',
-        ];
-
-        $payload = [
-            'registration_ids' => $fcmTokens,
-            'notification' => $notification,
-            'data' => $data,
-            'priority' => 'high',
-        ];
-
-        $headers = [
-            'Authorization: key=' . $this->serverKey,
-            'Content-Type: application/json',
-        ];
-
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $this->fcmUrl);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
-
-        $result = curl_exec($ch);
-        curl_close($ch);
-
-        return json_decode($result, true);
+        return $results;
     }
 }
