@@ -28,6 +28,56 @@ class AlfaController extends Controller
     }
 
     /**
+     * Global return handler - redirects to tenant-specific route
+     */
+    public function globalReturn(Request $request)
+    {
+        // Get tenant from session
+        $tenantId = session('alfa_tenant_id');
+
+        if (!$tenantId) {
+            return back()->with('error', 'Payment session expired. Please try again.');
+        }
+
+        // Get tenant subdomain
+        $tenant = \App\Models\Tenant::find($tenantId);
+
+        if (!$tenant) {
+            return back()->with('error', 'Invalid tenant.');
+        }
+
+        // Redirect to tenant-specific route with all query parameters
+        $url = 'https://' . $tenant->subdomain . '.' . config('app.domain') . '/payment/alfa/return?' . http_build_query($request->all());
+
+        return redirect($url);
+    }
+
+    /**
+     * Global callback handler - redirects to tenant-specific route
+     */
+    public function globalCallback(Request $request)
+    {
+        // Get tenant from session or transaction reference
+        $tenantId = session('alfa_tenant_id');
+
+        if (!$tenantId) {
+            return back()->with('error', 'Payment session expired.');
+        }
+
+        // Get tenant subdomain
+        $tenant = \App\Models\Tenant::find($tenantId);
+
+        if (!$tenant) {
+            return back()->with('error', 'Invalid tenant.');
+        }
+
+        // Redirect to tenant-specific route with all parameters
+        $url = 'https://' . $tenant->subdomain . '.' . config('app.domain') . '/payment/alfa/callback?' . http_build_query($request->all());
+
+        return redirect($url);
+    }
+
+    /**
      * Show the checkout page/redirection logic for an invoice.
      */
     public function checkout(Request $request, string $subdomain, $invoiceId)
@@ -84,6 +134,12 @@ class AlfaController extends Controller
         // I will implement the structure and logging.
 
         $info['HS_RequestHash'] = $this->generateRequestHash($info);
+
+        // Store invoice ID and tenant ID in session for the return callback
+        session([
+            'alfa_invoice_id' => $invoice->id,
+            'alfa_tenant_id' => tenant_id()
+        ]);
 
         return view('payment-gateways.alfa.checkout', [
             'url' => $handshakeUrl,
