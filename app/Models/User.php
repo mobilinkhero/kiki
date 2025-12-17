@@ -114,6 +114,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'role_id',
         'default_language',
         'email_verified_at',
+        'fcm_token',
     ];
 
     /**

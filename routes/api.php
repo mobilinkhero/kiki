@@ -50,6 +50,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/refresh', [AuthController::class, 'refresh']);
     });
 
+    // FCM Token management
+    Route::post('/fcm-token', [AuthController::class, 'updateFcmToken']);
+
     // Tenant management
     Route::prefix('tenant')->group(function () {
         Route::get('/', [TenantController::class, 'current']);
