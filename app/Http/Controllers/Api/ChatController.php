@@ -93,6 +93,14 @@ class ChatController extends Controller
             ->orderBy('time_sent', 'desc')
             ->paginate($request->input('per_page', 50));
 
+        // Mark all customer messages (not staff messages) as read
+        ChatMessage::fromTenant($subdomain)
+            ->where('interaction_id', $id)
+            ->where('tenant_id', $user->tenant_id)
+            ->where('is_read', false)
+            ->whereNull('staff_id') // Only mark customer messages as read
+            ->update(['is_read' => true]);
+
         return response()->json([
             'success' => true,
             'data' => $messages
