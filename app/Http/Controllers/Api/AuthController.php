@@ -453,4 +453,42 @@ class AuthController extends Controller
             'message' => 'Email verified successfully',
         ]);
     }
+
+    /**
+     * Update FCM Token
+     *
+     * Update the user's Firebase Cloud Messaging token for push notifications.
+     *
+     * @authenticated
+     *
+     * @bodyParam token string required The FCM token. Example: dKj3kd9fj3kd...
+     *
+     * @response 200 {
+     *   "success": true,
+     *   "message": "FCM token updated successfully"
+     * }
+     */
+    public function updateFcmToken(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'token' => 'required|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $request->user()->update([
+            'fcm_token' => $request->token,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'FCM token updated successfully',
+        ]);
+    }
 }
