@@ -4065,29 +4065,42 @@ class WhatsAppWebhookController extends Controller
             // Get subdomain for tenant
             $subdomain = tenant_subdomain_by_tenant_id($this->tenant_id);
 
-            // Find contact by phone number using tenant subdomain
+            // Find chat by receiver_id (WhatsApp phone number)
+            $chat = \App\Models\Tenant\Chat::fromTenant($subdomain)
+                ->where('receiver_id', $from)
+                ->first();
+
+            if (!$chat) {
+                \Log::channel('push_notification')->warning('⚠️ Chat not found for phone', ['phone' => $from]);
+                return;
+            }
+
+            // Get contact from chat's type_id
             $contact = \App\Models\Tenant\Contact::fromTenant($subdomain)
-                ->where('phone', $from)
+                ->where('id', $chat->type_id)
                 ->first();
 
             if (!$contact) {
-                \Log::channel('push_notification')->warning('⚠️ Contact not found for phone', ['phone' => $from]);
+                \Log::channel('push_notification')->warning('⚠️ Contact not found for chat', [
+                    'chat_id' => $chat->id,
+                    'type_id' => $chat->type_id
+                ]);
                 return;
             }
 
             \Log::channel('push_notification')->info('✅ Contact found', [
                 'contact_id' => $contact->id,
-                'contact_name' => $contact->name,
-                'assigned_agent_id' => $contact->assigned_agent_id,
+                'contact_name' => $contact->firstname . ' ' . $contact->lastname,
+                'assigned_agent_id' => $contact->assigned_id,
             ]);
 
             $messageText = $message['text']['body'] ?? $message['type'] ?? 'New message';
 
             $fcmService = new \App\Services\FcmService();
 
-            if ($contact->assigned_agent_id) {
+            if ($contact->assigned_id) {
                 // Send to assigned agent
-                $agent = \App\Models\User::find($contact->assigned_agent_id);
+                $agent = \App\Models\User::find($contact->assigned_id);
 
                 if ($agent && $agent->fcm_token) {
                     \Log::channel('push_notification')->info('🚀 Sending to assigned agent', [
