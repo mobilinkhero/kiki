@@ -228,6 +228,10 @@ class WhatsAppWebhookController extends Controller
             try {
                 // Process payload directly
                 $this->processPayloadData($payload);
+
+                // Send FCM push notification for new messages
+                $this->sendFcmNotificationForNewMessage($payload);
+
                 $this->forwardWebhookData($feedData, $payload);
             } finally {
                 // Always release the database lock
@@ -4032,6 +4036,104 @@ class WhatsAppWebhookController extends Controller
 
         // Append to log file
         file_put_contents($logFile, $logEntry, FILE_APPEND | LOCK_EX);
+    }
+
+    /**
+     * Send FCM push notification for new incoming messages
+     */
+    protected function sendFcmNotificationForNewMessage(array $payload)
+    {
+        try {
+            // Extract message data from payload
+            if (!isset($payload['entry'][0]['changes'][0]['value']['messages'][0])) {
+                return; // No message in payload
+            }
+
+            $message = $payload['entry'][0]['changes'][0]['value']['messages'][0];
+            $from = $message['from'] ?? null;
+
+            if (!$from) {
+                return;
+            }
+
+            \Log::channel('push_notification')->info('🎯 ========== NEW MESSAGE FROM WEBHOOK ==========', [
+                'from' => $from,
+                'tenant_id' => $this->tenant_id,
+                'timestamp' => now()->toDateTimeString(),
+            ]);
+
+            // Find contact by phone number
+            $contact = \App\Models\Tenant\Contact::where('receiver_id', $from)
+                ->where('tenant_id', $this->tenant_id)
+                ->first();
+
+            if (!$contact) {
+                \Log::channel('push_notification')->warning('⚠️ Contact not found for phone', ['phone' => $from]);
+                return;
+            }
+
+            \Log::channel('push_notification')->info('✅ Contact found', [
+                'contact_id' => $contact->id,
+                'contact_name' => $contact->name,
+                'assigned_agent_id' => $contact->assigned_agent_id,
+            ]);
+
+            $messageText = $message['text']['body'] ?? $message['type'] ?? 'New message';
+
+            $fcmService = new \App\Services\FcmService();
+
+            if ($contact->assigned_agent_id) {
+                // Send to assigned agent
+                $agent = \App\Models\User::find($contact->assigned_agent_id);
+
+                if ($agent && $agent->fcm_token) {
+                    \Log::channel('push_notification')->info('🚀 Sending to assigned agent', [
+                        'agent_id' => $agent->id,
+                        'agent_name' => ($agent->firstname ?? '') . ' ' . ($agent->lastname ?? ''),
+                    ]);
+
+                    $fcmService->sendNotification(
+                        $agent->fcm_token,
+                        $contact->name ?? 'New Message',
+                        $messageText,
+                        [
+                            'chat_id' => (string) $contact->id,
+                            'chat_name' => $contact->name ?? 'Chat',
+                            'message' => $messageText,
+                        ]
+                    );
+                }
+            } else {
+                // Send to all users with FCM tokens
+                \Log::channel('push_notification')->info('📢 No agent assigned - broadcasting to all users');
+
+                $usersWithTokens = \App\Models\User::whereNotNull('fcm_token')->get();
+
+                foreach ($usersWithTokens as $user) {
+                    \Log::channel('push_notification')->info('📤 Sending to user', [
+                        'user_id' => $user->id,
+                    ]);
+
+                    $fcmService->sendNotification(
+                        $user->fcm_token,
+                        $contact->name ?? 'New Message',
+                        $messageText,
+                        [
+                            'chat_id' => (string) $contact->id,
+                            'chat_name' => $contact->name ?? 'Chat',
+                            'message' => $messageText,
+                        ]
+                    );
+                }
+            }
+
+        } catch (\Exception $e) {
+            \Log::channel('push_notification')->error('❌ FCM Exception', [
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
+        }
     }
 
 }
