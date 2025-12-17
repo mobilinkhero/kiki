@@ -100,13 +100,16 @@ class AlfaController extends Controller
         $settings = $this->getAlfaSettings();
 
         $authToken = $request->input('AuthToken');
-        $transactionRef = $request->input('TransactionReferenceNumber');
 
-        // Extract invoice ID from transaction reference (format: invoiceId_timestamp)
-        $invoiceId = explode('_', $transactionRef)[0] ?? null;
+        if (!$authToken) {
+            return back()->with('error', 'Payment failed: No Auth Token received from payment gateway.');
+        }
 
-        if (!$authToken || !$invoiceId) {
-            return back()->with('error', 'Payment failed: Invalid response from payment gateway.');
+        // Get invoice ID from session (stored during checkout)
+        $invoiceId = session('alfa_invoice_id');
+
+        if (!$invoiceId) {
+            return back()->with('error', 'Payment session expired. Please try again.');
         }
 
         $invoice = Invoice::findOrFail($invoiceId);
