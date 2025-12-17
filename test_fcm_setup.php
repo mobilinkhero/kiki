@@ -70,6 +70,42 @@ try {
     echo "   ❌ Failed to write log: " . $e->getMessage() . "\n\n";
 }
 
+// Test 6: Send actual test notification
+echo "6. Sending test notification...\n";
+if ($usersWithTokens > 0) {
+    try {
+        $user = \App\Models\User::whereNotNull('fcm_token')->first();
+        $fcmService = new \App\Services\FcmService();
+
+        echo "   📱 Sending to: " . $user->firstname . " " . $user->lastname . "\n";
+        echo "   🔑 Token: " . substr($user->fcm_token, 0, 30) . "...\n";
+
+        $result = $fcmService->sendNotification(
+            $user->fcm_token,
+            '🧪 Test Notification',
+            'This is a test notification from Chatvoo! If you see this, FCM is working! 🎉',
+            [
+                'chat_id' => '999',
+                'chat_name' => 'Test Chat',
+                'message' => 'Test message from setup script',
+            ]
+        );
+
+        if ($result) {
+            echo "   ✅ Test notification sent successfully!\n";
+            echo "   📱 Check your Android device for the notification\n\n";
+        } else {
+            echo "   ❌ Failed to send test notification\n";
+            echo "   📄 Check: tail -f storage/logs/push_notification_debug.log\n\n";
+        }
+    } catch (\Exception $e) {
+        echo "   ❌ Exception: " . $e->getMessage() . "\n";
+        echo "   📄 Check logs for details\n\n";
+    }
+} else {
+    echo "   ⚠️  Skipped - no users with FCM tokens\n\n";
+}
+
 // Summary
 echo "=====================================\n";
 echo "📊 SUMMARY\n";
