@@ -93,7 +93,7 @@ class FcmService
     /**
      * Send push notification to a specific device using FCM HTTP v1 API
      */
-    public function sendNotification($fcmToken, $title, $body, $data = [])
+    public function sendNotification($fcmToken, $title, $body, $data = [], $imageUrl = null)
     {
         \Log::channel('push_notification')->info('🔔 ========== STARTING NOTIFICATION SEND ==========');
         \Log::channel('push_notification')->info('📱 Target Device', [
@@ -103,6 +103,7 @@ class FcmService
             'title' => $title,
             'body' => substr($body, 0, 100),
             'data' => $data,
+            'image_url' => $imageUrl,
         ]);
 
         if (empty($fcmToken)) {
@@ -118,13 +119,20 @@ class FcmService
 
         $url = "https://fcm.googleapis.com/v1/projects/{$this->projectId}/messages:send";
 
+        $notification = [
+            'title' => $title,
+            'body' => substr($body, 0, 100),
+        ];
+
+        // Add image if provided
+        if ($imageUrl) {
+            $notification['image'] = $imageUrl;
+        }
+
         $message = [
             'message' => [
                 'token' => $fcmToken,
-                'notification' => [
-                    'title' => $title,
-                    'body' => substr($body, 0, 100),
-                ],
+                'notification' => $notification,
                 'data' => array_map('strval', $data),
                 'android' => [
                     'priority' => 'high',

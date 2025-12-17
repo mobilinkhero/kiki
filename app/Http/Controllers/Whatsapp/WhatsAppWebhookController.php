@@ -4094,7 +4094,25 @@ class WhatsAppWebhookController extends Controller
                 'assigned_agent_id' => $contact->assigned_id,
             ]);
 
-            $messageText = $message['text']['body'] ?? $message['type'] ?? 'New message';
+            // Get message type and content
+            $messageType = $message['type'] ?? 'text';
+            $messageText = $message['text']['body'] ?? null;
+            $imageUrl = null;
+
+            // Handle different message types
+            if ($messageType === 'image' && isset($message['image']['id'])) {
+                $messageText = '📷 Image';
+                // Get image URL from WhatsApp (you may need to download it first)
+                $imageUrl = $message['image']['link'] ?? null;
+            } elseif ($messageType === 'video') {
+                $messageText = '🎥 Video';
+            } elseif ($messageType === 'audio') {
+                $messageText = '🎤 Audio';
+            } elseif ($messageType === 'document') {
+                $messageText = '📄 Document';
+            } elseif (!$messageText) {
+                $messageText = 'New message';
+            }
 
             $fcmService = new \App\Services\FcmService();
 
@@ -4121,7 +4139,8 @@ class WhatsAppWebhookController extends Controller
                             'chat_id' => (string) $contact->id,
                             'chat_name' => $contactName,
                             'message' => $messageText,
-                        ]
+                        ],
+                        $imageUrl  // Pass image URL
                     );
                 }
             } else {
@@ -4147,7 +4166,8 @@ class WhatsAppWebhookController extends Controller
                             'chat_id' => (string) $contact->id,
                             'chat_name' => $contactName,
                             'message' => $messageText,
-                        ]
+                        ],
+                        $imageUrl  // Pass image URL
                     );
                 }
             }
