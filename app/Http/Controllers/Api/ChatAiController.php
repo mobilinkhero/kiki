@@ -27,8 +27,10 @@ class ChatAiController extends Controller
         }
 
         // Get the contact associated with this chat
-        $contact = Contact::where('id', $chat->type_id)
-            ->where('tenant_id', $request->user()->tenant_id)
+        // Contact uses dynamic table name: {subdomain}_contacts
+        $subdomain = tenant_subdomain();
+        $contact = Contact::fromTenant($subdomain)
+            ->where('id', $chat->type_id)
             ->first();
 
         if (!$contact) {
@@ -65,8 +67,9 @@ class ChatAiController extends Controller
             ], 404);
         }
 
-        $contact = Contact::where('id', $chat->type_id)
-            ->where('tenant_id', $request->user()->tenant_id)
+        $subdomain = tenant_subdomain();
+        $contact = Contact::fromTenant($subdomain)
+            ->where('id', $chat->type_id)
             ->first();
 
         if (!$contact) {
@@ -102,8 +105,9 @@ class ChatAiController extends Controller
             ], 404);
         }
 
-        $contact = Contact::where('id', $chat->type_id)
-            ->where('tenant_id', $request->user()->tenant_id)
+        $subdomain = tenant_subdomain();
+        $contact = Contact::fromTenant($subdomain)
+            ->where('id', $chat->type_id)
             ->first();
 
         if (!$contact) {
@@ -139,8 +143,9 @@ class ChatAiController extends Controller
             ], 404);
         }
 
-        $contact = Contact::where('id', $chat->type_id)
-            ->where('tenant_id', $request->user()->tenant_id)
+        $subdomain = tenant_subdomain();
+        $contact = Contact::fromTenant($subdomain)
+            ->where('id', $chat->type_id)
             ->first();
 
         if (!$contact) {
