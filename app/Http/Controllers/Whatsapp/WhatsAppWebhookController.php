@@ -3484,26 +3484,72 @@ class WhatsAppWebhookController extends Controller
                 ]);
 
                 // Send FCM push notification to assigned agent
+                \Log::channel('push_notification')->info('🎯 ========== NEW MESSAGE RECEIVED ==========', [
+                    'chat_id' => $chatId,
+                    'message_id' => $messageDbId,
+                    'timestamp' => now()->toDateTimeString(),
+                ]);
+
                 try {
                     $contact = \App\Models\Contact::find($chatId);
-                    if ($contact && $contact->assigned_agent_id) {
-                        $agent = \App\Models\User::find($contact->assigned_agent_id);
-                        if ($agent && $agent->fcm_token) {
-                            $fcmService = new \App\Services\FcmService();
-                            $fcmService->sendNotification(
-                                $agent->fcm_token,
-                                $contact->name ?? 'New Message',
-                                $chatData['last_message'] ?? 'You have a new message',
-                                [
-                                    'chat_id' => (string) $chatId,
-                                    'chat_name' => $contact->name ?? 'Chat',
-                                    'message' => $chatData['last_message'] ?? '',
-                                ]
-                            );
+
+                    if (!$contact) {
+                        \Log::channel('push_notification')->warning('⚠️ Contact not found', ['chat_id' => $chatId]);
+                    } else {
+                        \Log::channel('push_notification')->info('✅ Contact found', [
+                            'contact_id' => $contact->id,
+                            'contact_name' => $contact->name,
+                            'assigned_agent_id' => $contact->assigned_agent_id,
+                        ]);
+
+                        if ($contact->assigned_agent_id) {
+                            $agent = \App\Models\User::find($contact->assigned_agent_id);
+
+                            if (!$agent) {
+                                \Log::channel('push_notification')->warning('⚠️ Assigned agent not found', [
+                                    'agent_id' => $contact->assigned_agent_id,
+                                ]);
+                            } else {
+                                \Log::channel('push_notification')->info('✅ Agent found', [
+                                    'agent_id' => $agent->id,
+                                    'agent_name' => ($agent->firstname ?? '') . ' ' . ($agent->lastname ?? ''),
+                                    'has_fcm_token' => !empty($agent->fcm_token),
+                                    'fcm_token_preview' => $agent->fcm_token ? substr($agent->fcm_token, 0, 30) . '...' : null,
+                                ]);
+
+                                if ($agent->fcm_token) {
+                                    \Log::channel('push_notification')->info('🚀 Initiating FCM notification send');
+
+                                    $fcmService = new \App\Services\FcmService();
+                                    $result = $fcmService->sendNotification(
+                                        $agent->fcm_token,
+                                        $contact->name ?? 'New Message',
+                                        $chatData['last_message'] ?? 'You have a new message',
+                                        [
+                                            'chat_id' => (string) $chatId,
+                                            'chat_name' => $contact->name ?? 'Chat',
+                                            'message' => $chatData['last_message'] ?? '',
+                                        ]
+                                    );
+
+                                    \Log::channel('push_notification')->info($result ? '✅ FCM notification completed successfully' : '❌ FCM notification failed', [
+                                        'result' => $result,
+                                    ]);
+                                } else {
+                                    \Log::channel('push_notification')->warning('⚠️ Agent has no FCM token - notification skipped');
+                                }
+                            }
+                        } else {
+                            \Log::channel('push_notification')->info('ℹ️ No agent assigned to this contact - notification skipped');
                         }
                     }
                 } catch (\Exception $e) {
-                    \Log::error('FCM notification error', ['error' => $e->getMessage()]);
+                    \Log::channel('push_notification')->error('❌ EXCEPTION in FCM notification', [
+                        'error' => $e->getMessage(),
+                        'file' => $e->getFile(),
+                        'line' => $e->getLine(),
+                        'trace' => $e->getTraceAsString(),
+                    ]);
                 }
             }
         } catch (\Exception $e) {
