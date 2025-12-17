@@ -4067,7 +4067,7 @@ class WhatsAppWebhookController extends Controller
 
             // Find contact by phone number using tenant subdomain
             $contact = \App\Models\Tenant\Contact::fromTenant($subdomain)
-                ->where('receiver_id', $from)
+                ->where('phone', $from)
                 ->first();
 
             if (!$contact) {
