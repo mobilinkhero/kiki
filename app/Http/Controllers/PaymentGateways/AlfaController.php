@@ -65,7 +65,7 @@ class AlfaController extends Controller
             'HS_MerchantHash' => $settings['payment.alfa_merchant_hash'],
             'HS_MerchantUsername' => $settings['payment.alfa_merchant_username'],
             'HS_MerchantPassword' => $settings['payment.alfa_merchant_password'],
-            'HS_IsRedirectionRequest' => 0,
+            'HS_IsRedirectionRequest' => 1, // 1 = Alfa redirects to ReturnURL with AuthToken
             'HS_ChannelId' => '1001',
             'HS_ReturnURL' => 'https://soft.chatvoo.com/payment/alfa/return', // Must match Alfa portal config exactly
             'HS_TransactionReferenceNumber' => $invoice->id . '_' . time(),
