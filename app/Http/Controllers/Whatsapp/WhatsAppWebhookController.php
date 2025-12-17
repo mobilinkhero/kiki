@@ -4062,29 +4062,29 @@ class WhatsAppWebhookController extends Controller
                 'timestamp' => now()->toDateTimeString(),
             ]);
 
-            // Find contact by phone number
-            $contact = \App\Models\Tenant\Contact::where('receiver_id', $from)
+            // Find chat by phone number (WhatsApp uses Chat model, not Contact)
+            $chat = \App\Models\Tenant\Chat::where('receiver_id', $from)
                 ->where('tenant_id', $this->tenant_id)
                 ->first();
 
-            if (!$contact) {
-                \Log::channel('push_notification')->warning('⚠️ Contact not found for phone', ['phone' => $from]);
+            if (!$chat) {
+                \Log::channel('push_notification')->warning('⚠️ Chat not found for phone', ['phone' => $from]);
                 return;
             }
 
-            \Log::channel('push_notification')->info('✅ Contact found', [
-                'contact_id' => $contact->id,
-                'contact_name' => $contact->name,
-                'assigned_agent_id' => $contact->assigned_agent_id,
+            \Log::channel('push_notification')->info('✅ Chat found', [
+                'chat_id' => $chat->id,
+                'chat_name' => $chat->name,
+                'assigned_agent_id' => $chat->assigned_agent_id,
             ]);
 
             $messageText = $message['text']['body'] ?? $message['type'] ?? 'New message';
 
             $fcmService = new \App\Services\FcmService();
 
-            if ($contact->assigned_agent_id) {
+            if ($chat->assigned_agent_id) {
                 // Send to assigned agent
-                $agent = \App\Models\User::find($contact->assigned_agent_id);
+                $agent = \App\Models\User::find($chat->assigned_agent_id);
 
                 if ($agent && $agent->fcm_token) {
                     \Log::channel('push_notification')->info('🚀 Sending to assigned agent', [
@@ -4094,11 +4094,11 @@ class WhatsAppWebhookController extends Controller
 
                     $fcmService->sendNotification(
                         $agent->fcm_token,
-                        $contact->name ?? 'New Message',
+                        $chat->name ?? 'New Message',
                         $messageText,
                         [
-                            'chat_id' => (string) $contact->id,
-                            'chat_name' => $contact->name ?? 'Chat',
+                            'chat_id' => (string) $chat->id,
+                            'chat_name' => $chat->name ?? 'Chat',
                             'message' => $messageText,
                         ]
                     );
@@ -4116,11 +4116,11 @@ class WhatsAppWebhookController extends Controller
 
                     $fcmService->sendNotification(
                         $user->fcm_token,
-                        $contact->name ?? 'New Message',
+                        $chat->name ?? 'New Message',
                         $messageText,
                         [
-                            'chat_id' => (string) $contact->id,
-                            'chat_name' => $contact->name ?? 'Chat',
+                            'chat_id' => (string) $chat->id,
+                            'chat_name' => $chat->name ?? 'Chat',
                             'message' => $messageText,
                         ]
                     );
