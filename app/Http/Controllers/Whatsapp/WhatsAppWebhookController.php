@@ -4137,7 +4137,9 @@ class WhatsAppWebhookController extends Controller
                 if ($contact->phone) {
                     $contactName .= ' (' . $contact->phone . ')';
                 }
-                $usersWithTokens = \App\Models\User::whereNotNull('fcm_token')->get();
+                $usersWithTokens = \App\Models\User::whereNotNull('fcm_token')
+                    ->where('tenant_id', $this->tenant_id)
+                    ->get();
 
                 foreach ($usersWithTokens as $user) {
 
