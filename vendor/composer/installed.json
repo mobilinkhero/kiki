@@ -990,7 +990,7 @@
             "dist": {
                 "type": "path",
                 "url": "./platform/packages/corbital/installer",
-                "reference": "3059c72959845551846bf3e9458058819273c3f0"
+                "reference": "bc0773b25c1804ba8eea31864a3c4859be00b366"
             },
             "require": {
                 "illuminate/database": "^10.0|^11.0|^12.0",
@@ -1064,7 +1064,7 @@
             "dist": {
                 "type": "path",
                 "url": "./platform/packages/corbital/laravel-emails",
-                "reference": "4d426e9f843f1326a338439ed6a22bc023e038f0"
+                "reference": "0869aeaf0409dfc22c50b63b7fec0cb2c018c9ff"
             },
             "require": {
                 "illuminate/database": "^10.0|^11.0|^12.0",
@@ -1128,7 +1128,7 @@
             "dist": {
                 "type": "path",
                 "url": "./platform/packages/corbital/module-manager",
-                "reference": "c37369ef9f4a5a5b99ec136146fde78a54fa93ef"
+                "reference": "eb7e4bea80025ed3eeab76142d9a0e5578612a87"
             },
             "require": {
                 "illuminate/console": "^11.0|^12.0",
@@ -1189,7 +1189,7 @@
             "dist": {
                 "type": "path",
                 "url": "./platform/packages/corbital/laravel-settings",
-                "reference": "dae7d31555e0fc8f5a366fe08b3d02c0e3763377"
+                "reference": "3c835f6dce7eb06ac6f4e2d4e0a72b877663bf5e"
             },
             "require": {
                 "illuminate/support": "10.0|^11.0|^12.0",
@@ -4887,72 +4887,6 @@
                 "source": "https://github.com/laravel/sail"
             },
             "install-path": "../laravel/sail"
-        },
-        {
-            "name": "laravel/sanctum",
-            "version": "v4.2.1",
-            "version_normalized": "4.2.1.0",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/laravel/sanctum.git",
-                "reference": "f5fb373be39a246c74a060f2cf2ae2c2145b3664"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/laravel/sanctum/zipball/f5fb373be39a246c74a060f2cf2ae2c2145b3664",
-                "reference": "f5fb373be39a246c74a060f2cf2ae2c2145b3664",
-                "shasum": ""
-            },
-            "require": {
-                "ext-json": "*",
-                "illuminate/console": "^11.0|^12.0",
-                "illuminate/contracts": "^11.0|^12.0",
-                "illuminate/database": "^11.0|^12.0",
-                "illuminate/support": "^11.0|^12.0",
-                "php": "^8.2",
-                "symfony/console": "^7.0"
-            },
-            "require-dev": {
-                "mockery/mockery": "^1.6",
-                "orchestra/testbench": "^9.15|^10.8",
-                "phpstan/phpstan": "^1.10"
-            },
-            "time": "2025-11-21T13:59:03+00:00",
-            "type": "library",
-            "extra": {
-                "laravel": {
-                    "providers": [
-                        "Laravel\\Sanctum\\SanctumServiceProvider"
-                    ]
-                }
-            },
-            "installation-source": "dist",
-            "autoload": {
-                "psr-4": {
-                    "Laravel\\Sanctum\\": "src/"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "Taylor Otwell",
-                    "email": "taylor@laravel.com"
-                }
-            ],
-            "description": "Laravel Sanctum provides a featherweight authentication system for SPAs and simple APIs.",
-            "keywords": [
-                "auth",
-                "laravel",
-                "sanctum"
-            ],
-            "support": {
-                "issues": "https://github.com/laravel/sanctum/issues",
-                "source": "https://github.com/laravel/sanctum"
-            },
-            "install-path": "../laravel/sanctum"
         },
         {
             "name": "laravel/serializable-closure",
