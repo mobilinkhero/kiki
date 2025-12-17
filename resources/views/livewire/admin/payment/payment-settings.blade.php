@@ -10,23 +10,16 @@
         ['label' => t('payment_gateway_settings')],
     ]" />
         @php
-            $settings = get_batch_settings([
-                'payment.offline_enabled',
-                'payment.stripe_enabled',
-                'payment.razorpay_enabled',
-                'payment.paypal_enabled',
-                'payment.paystack_enabled',
-                'payment.alfa_enabled'
-            ]);
-            // Ensure all keys exist to prevent undefined array key errors
-            $settings = array_merge([
-                'payment.offline_enabled' => false,
-                'payment.stripe_enabled' => false,
-                'payment.razorpay_enabled' => false,
-                'payment.paypal_enabled' => false,
-                'payment.paystack_enabled' => false,
-                'payment.alfa_enabled' => false,
-            ], $settings);
+        $settings = get_batch_settings(['payment.offline_enabled', 'payment.stripe_enabled',
+        'payment.razorpay_enabled', 'payment.paypal_enabled', 'payment.paystack_enabled']);
+        // Ensure all keys exist to prevent undefined array key errors
+        $settings = array_merge([
+        'payment.offline_enabled' => false,
+        'payment.stripe_enabled' => false,
+        'payment.razorpay_enabled' => false,
+        'payment.paypal_enabled' => false,
+        'payment.paystack_enabled' => false,
+        ], $settings);
         @endphp
 
         <x-card>
@@ -82,16 +75,16 @@
                             <div class="mt-2 border-t border-gray-200 dark:border-gray-700 pt-2">
 
                                 @if ($settings['payment.offline_enabled'])
-                                    <span
-                                        class="inline-flex items-center text-xs font-medium text-success-600 dark:text-success-400">
-                                        <span class="w-2 h-2 rounded-full bg-success-400 mr-2"></span>
-                                        {{ t('active') }}
-                                    </span>
+                                <span
+                                    class="inline-flex items-center text-xs font-medium text-success-600 dark:text-success-400">
+                                    <span class="w-2 h-2 rounded-full bg-success-400 mr-2"></span>
+                                    {{ t('active') }}
+                                </span>
                                 @else
-                                    <span class="inline-flex items-center text-xs font-medium">
-                                        <span class="w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-600 mr-2"></span>
-                                        {{ t('not_configured') }}
-                                    </span>
+                                <span class="inline-flex items-center text-xs font-medium">
+                                    <span class="w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-600 mr-2"></span>
+                                    {{ t('not_configured') }}
+                                </span>
                                 @endif
                             </div>
                         </div>
@@ -112,11 +105,9 @@
                                                     d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-6.99-2.109l-.9 5.555C5.175 22.99 8.385 24 11.714 24c2.641 0 4.843-.624 6.328-1.813 1.664-1.305 2.525-3.236 2.525-5.732 0-4.128-2.524-5.851-6.591-7.305z" />
                                             </svg>
                                         </div> @php
-                                            $stripeSettings = get_batch_settings(['payment.stripe_enabled']);
-                                            $stripeSettings = array_merge(
-                                                ['payment.stripe_enabled' => false],
-                                                $stripeSettings
-                                            );
+                                        $stripeSettings = get_batch_settings(['payment.stripe_enabled']);
+                                        $stripeSettings = array_merge(['payment.stripe_enabled' => false],
+                                        $stripeSettings);
                                         @endphp
                                         <span
                                             class="absolute -top-1 -right-1 h-3 w-3 rounded-full border-2 border-white dark:border-gray-800 {{ $stripeSettings['payment.stripe_enabled'] ? 'bg-success-400' : 'bg-gray-200 ' }}"></span>
@@ -133,17 +124,17 @@
                             </div>
                             <div class="mt-2 border-t border-gray-200 dark:border-gray-700 pt-2">
                                 @if ($settings['payment.stripe_enabled'])
-                                    <span
-                                        class="inline-flex items-center text-xs font-medium text-success-600 dark:text-success-400">
-                                        <span class="w-2 h-2 rounded-full bg-success-400 mr-2"></span>
-                                        {{ t('active') }}
-                                    </span>
+                                <span
+                                    class="inline-flex items-center text-xs font-medium text-success-600 dark:text-success-400">
+                                    <span class="w-2 h-2 rounded-full bg-success-400 mr-2"></span>
+                                    {{ t('active') }}
+                                </span>
                                 @else
-                                    <span
-                                        class="inline-flex items-center text-xs font-medium text-gray-600 dark:text-gray-400">
-                                        <span class="w-2 h-2 rounded-full  bg-gray-300 dark:bg-gray-600 mr-2"></span>
-                                        {{ t('not_configured') }}
-                                    </span>
+                                <span
+                                    class="inline-flex items-center text-xs font-medium text-gray-600 dark:text-gray-400">
+                                    <span class="w-2 h-2 rounded-full  bg-gray-300 dark:bg-gray-600 mr-2"></span>
+                                    {{ t('not_configured') }}
+                                </span>
                                 @endif
                             </div>
                         </div>
@@ -179,17 +170,17 @@
                             </div>
                             <div class="mt-2 border-t border-gray-200 dark:border-gray-700 pt-2">
                                 @if ($settings['payment.razorpay_enabled'])
-                                    <span
-                                        class="inline-flex items-center text-xs font-medium text-success-600 dark:text-success-400">
-                                        <span class="w-2 h-2 rounded-full bg-success-400 mr-2"></span>
-                                        {{ t('active') }}
-                                    </span>
+                                <span
+                                    class="inline-flex items-center text-xs font-medium text-success-600 dark:text-success-400">
+                                    <span class="w-2 h-2 rounded-full bg-success-400 mr-2"></span>
+                                    {{ t('active') }}
+                                </span>
                                 @else
-                                    <span
-                                        class="inline-flex items-center text-xs font-medium text-gray-600 dark:text-gray-400">
-                                        <span class="w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-600 mr-2"></span>
-                                        {{ t('not_configured') }}
-                                    </span>
+                                <span
+                                    class="inline-flex items-center text-xs font-medium text-gray-600 dark:text-gray-400">
+                                    <span class="w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-600 mr-2"></span>
+                                    {{ t('not_configured') }}
+                                </span>
                                 @endif
                             </div>
                         </div>
@@ -204,12 +195,9 @@
                                     <div class="relative">
                                         <div
                                             class="w-12 h-12 bg-blue-100 dark:bg-blue-900/50 rounded-lg flex items-center justify-center">
-                                            <svg class="w-6 h-6 text-blue-600 dark:text-blue-400" fill="currentColor"
-                                                viewBox="0 0 24 24">
-                                                <path
-                                                    d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.473 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.304 2.42 1.012 4.287-.023.143-.047.288-.077.437-.983 5.05-4.349 6.797-8.647 6.797h-2.19c-.524 0-.968.382-1.05.9l-1.12 7.106zm14.146-14.42a3.35 3.35 0 0 0-.607-.541c-.013.076-.026.175-.041.254-.58 2.975-2.477 4.562-5.95 4.562H11.4c-.146 0-.27.097-.292.238l-.891 5.641-.03.152h2.01a.469.469 0 0 0 .464-.397l.019-.08.383-2.43.025-.086a.469.469 0 0 1 .464-.398h.292c1.886 0 3.36-.378 3.902-1.78.223-.535.292-1.064.299-1.469a3.385 3.385 0 0 0-.823-2.996 2.53 2.53 0 0 0-.673-.67z" />
-                                                <path
-                                                    d="M20.713 6.72c-.015-.044-.03-.088-.046-.132-1.444-3.344-4.414-4.358-8.844-4.358h-5.8c-.174 0-.34.093-.394.333L3.467 18.21a.237.237 0 0 0 .234.293h3.29l.855-5.424-.027.176c.054-.24.22-.333.394-.333h2.19c3.94 0 7.013-1.6 7.908-6.227.026-.134.05-.265.07-.393.225-1.46.01-2.477-.668-3.582z" />
+                                            <svg class="w-6 h-6 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 24 24">
+                                                <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.473 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.304 2.42 1.012 4.287-.023.143-.047.288-.077.437-.983 5.05-4.349 6.797-8.647 6.797h-2.19c-.524 0-.968.382-1.05.9l-1.12 7.106zm14.146-14.42a3.35 3.35 0 0 0-.607-.541c-.013.076-.026.175-.041.254-.58 2.975-2.477 4.562-5.95 4.562H11.4c-.146 0-.27.097-.292.238l-.891 5.641-.03.152h2.01a.469.469 0 0 0 .464-.397l.019-.08.383-2.43.025-.086a.469.469 0 0 1 .464-.398h.292c1.886 0 3.36-.378 3.902-1.78.223-.535.292-1.064.299-1.469a3.385 3.385 0 0 0-.823-2.996 2.53 2.53 0 0 0-.673-.67z"/>
+                                                <path d="M20.713 6.72c-.015-.044-.03-.088-.046-.132-1.444-3.344-4.414-4.358-8.844-4.358h-5.8c-.174 0-.34.093-.394.333L3.467 18.21a.237.237 0 0 0 .234.293h3.29l.855-5.424-.027.176c.054-.24.22-.333.394-.333h2.19c3.94 0 7.013-1.6 7.908-6.227.026-.134.05-.265.07-.393.225-1.46.01-2.477-.668-3.582z"/>
                                             </svg>
                                         </div>
                                         <span
@@ -252,10 +240,8 @@
                                     <div class="relative">
                                         <div
                                             class="w-12 h-12 bg-green-100 dark:bg-green-900/50 rounded-lg flex items-center justify-center">
-                                            <svg class="w-6 h-6 text-green-600 dark:text-green-400" fill="currentColor"
-                                                viewBox="0 0 24 24">
-                                                <path
-                                                    d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+                                            <svg class="w-6 h-6 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 24 24">
+                                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
                                             </svg>
                                         </div>
                                         <span
@@ -273,52 +259,6 @@
                             </div>
                             <div class="mt-2 border-t border-gray-200 dark:border-gray-700 pt-2">
                                 @if ($settings['payment.paystack_enabled'])
-                                    <span
-                                        class="inline-flex items-center text-xs font-medium text-success-600 dark:text-success-400">
-                                        <span class="w-2 h-2 rounded-full bg-success-400 mr-2"></span>
-                                        {{ t('active') }}
-                                    </span>
-                                @else
-                                    <span
-                                        class="inline-flex items-center text-xs font-medium text-gray-600 dark:text-gray-400">
-                                        <span class="w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-600 mr-2"></span>
-                                        {{ t('not_configured') }}
-                                    </span>
-                                @endif
-                            </div>
-                        </div>
-                    </a>
-
-                    <!-- Alfa Payment Gateway -->
-                    <a href="{{ route('admin.settings.payment.alfa') }}" class="group relative">
-                        <div
-                            class="block p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:border-info-500 dark:hover:border-info-500 transition-all duration-200 shadow-sm hover:shadow-md">
-                            <div class="flex items-center">
-                                <div class="shrink-0">
-                                    <div class="relative">
-                                        <div
-                                            class="w-12 h-12 bg-blue-100 dark:bg-blue-900/50 rounded-lg flex items-center justify-center">
-                                            <svg class="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none"
-                                                stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                                            </svg>
-                                        </div>
-                                        <span
-                                            class="absolute -top-1 -right-1 h-3 w-3 rounded-full border-2 border-white dark:border-gray-800 {{ $settings['payment.alfa_enabled'] ? 'bg-success-400' : 'bg-gray-200' }}"></span>
-                                    </div>
-                                </div>
-                                <div class="ml-4 flex-1">
-                                    <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                                        {{ t('alfa') ?? 'Alfa' }}
-                                    </h3>
-                                    <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                                        {{ t('alfa_description') ?? 'Bank Alfalah Payment Gateway' }}
-                                    </p>
-                                </div>
-                            </div>
-                            <div class="mt-2 border-t border-gray-200 dark:border-gray-700 pt-2">
-                                @if ($settings['payment.alfa_enabled'])
                                     <span
                                         class="inline-flex items-center text-xs font-medium text-success-600 dark:text-success-400">
                                         <span class="w-2 h-2 rounded-full bg-success-400 mr-2"></span>

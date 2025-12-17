@@ -101,17 +101,6 @@ class SubscriptionServiceProvider extends ServiceProvider
                 return $app->make(OfflinePaymentGateway::class);
             });
 
-            // Register Alfa Payment
-            if ($settings->alfa_enabled && !empty($settings->alfa_merchant_id)) {
-                $manager->register('alfa', function () use ($app, $settings) {
-                    return new \App\Services\PaymentGateways\AlfaPaymentGateway(
-                        $settings->alfa_merchant_id,
-                        $settings->alfa_store_id,
-                        $settings->alfa_merchant_hash
-                    );
-                });
-            }
-
             // Dispatch event for modules to register their payment gateways
             event(new PaymentGatewayRegistration($manager));
 

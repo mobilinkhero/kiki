@@ -68,13 +68,6 @@ Route::get('paypal/subscription/cancel', [\App\Http\Controllers\PaymentGateways\
     ->name('paypal.subscription.cancel');
 
 Route::get('back-to-admin', [AuthenticatedSessionController::class, 'back_to_admin'])->name('back.to.admin');
-
-// Alfa Payment Gateway - Global routes (redirect to tenant)
-Route::get('payment/alfa/return', [\App\Http\Controllers\PaymentGateways\AlfaController::class, 'globalReturn'])
-    ->name('alfa.global.return');
-Route::any('payment/alfa/callback', [\App\Http\Controllers\PaymentGateways\AlfaController::class, 'globalCallback'])
-    ->name('alfa.global.callback');
-
 Route::get('/privacy-policy', [PrivacyPolicyController::class, 'show'])->name('privacy.policy');
 Route::get('/terms-conditions', [TermsConditionsController::class, 'show'])->name('terms.conditions');
 

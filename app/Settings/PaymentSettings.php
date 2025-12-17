@@ -59,15 +59,6 @@ class PaymentSettings extends Settings
     // Tax Settings
     public bool $tax_enabled = false;
 
-    // Alfa Payment Gateway
-    public bool $alfa_enabled = false;
-    public string $alfa_mode = 'sandbox'; // sandbox or production
-    public string $alfa_merchant_id = '';
-    public string $alfa_store_id = '';
-    public string $alfa_merchant_hash = '';
-    public string $alfa_merchant_username = '';
-    public string $alfa_merchant_password = '';
-
     public static function group(): string
     {
         return 'payment';
