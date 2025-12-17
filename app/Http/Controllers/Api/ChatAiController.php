@@ -15,116 +15,57 @@ class ChatAiController extends Controller
      */
     public function toggleAi(Request $request, $chatId): JsonResponse
     {
-        $chat = Chat::where('id', $chatId)
-            ->where('tenant_id', $request->user()->tenant_id)
-            ->first();
+        try {
+            $user = $request->user();
+            if (!$user->tenant_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User is not associated with a tenant'
+                ], 403);
+            }
 
-        if (!$chat) {
+            $subdomain = tenant_subdomain_by_tenant_id($user->tenant_id);
+
+            $chat = Chat::fromTenant($subdomain)
+                ->where('id', $chatId)
+                ->where('tenant_id', $user->tenant_id)
+                ->first();
+
+            if (!$chat) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Chat not found',
+                ], 404);
+            }
+
+            // Get the contact
+            $contact = Contact::fromTenant($subdomain)
+                ->where('id', $chat->type_id)
+                ->first();
+
+            if (!$contact) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Contact not found',
+                ], 404);
+            }
+
+            // Toggle AI status
+            $contact->ai_disabled = !$contact->ai_disabled;
+            $contact->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => $contact->ai_disabled ? 'AI disabled for this chat' : 'AI enabled for this chat',
+                'ai_disabled' => $contact->ai_disabled,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('ChatAi Toggle Error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Chat not found',
-            ], 404);
+                'message' => 'Error: ' . $e->getMessage(),
+            ], 500);
         }
-
-        // Get the contact associated with this chat
-        // Contact uses dynamic table name: {subdomain}_contacts
-        $subdomain = tenant_subdomain();
-        $contact = Contact::fromTenant($subdomain)
-            ->where('id', $chat->type_id)
-            ->first();
-
-        if (!$contact) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Contact not found',
-            ], 404);
-        }
-
-        // Toggle AI status
-        $contact->ai_disabled = !$contact->ai_disabled;
-        $contact->save();
-
-        return response()->json([
-            'success' => true,
-            'message' => $contact->ai_disabled ? 'AI disabled for this chat' : 'AI enabled for this chat',
-            'ai_disabled' => $contact->ai_disabled,
-        ]);
-    }
-
-    /**
-     * Enable AI for a chat
-     */
-    public function enableAi(Request $request, $chatId): JsonResponse
-    {
-        $chat = Chat::where('id', $chatId)
-            ->where('tenant_id', $request->user()->tenant_id)
-            ->first();
-
-        if (!$chat) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Chat not found',
-            ], 404);
-        }
-
-        $subdomain = tenant_subdomain();
-        $contact = Contact::fromTenant($subdomain)
-            ->where('id', $chat->type_id)
-            ->first();
-
-        if (!$contact) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Contact not found',
-            ], 404);
-        }
-
-        $contact->ai_disabled = false;
-        $contact->save();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'AI enabled for this chat',
-            'ai_disabled' => false,
-        ]);
-    }
-
-    /**
-     * Disable AI for a chat
-     */
-    public function disableAi(Request $request, $chatId): JsonResponse
-    {
-        $chat = Chat::where('id', $chatId)
-            ->where('tenant_id', $request->user()->tenant_id)
-            ->first();
-
-        if (!$chat) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Chat not found',
-            ], 404);
-        }
-
-        $subdomain = tenant_subdomain();
-        $contact = Contact::fromTenant($subdomain)
-            ->where('id', $chat->type_id)
-            ->first();
-
-        if (!$contact) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Contact not found',
-            ], 404);
-        }
-
-        $contact->ai_disabled = true;
-        $contact->save();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'AI disabled for this chat',
-            'ai_disabled' => true,
-        ]);
     }
 
     /**
@@ -132,56 +73,163 @@ class ChatAiController extends Controller
      */
     public function getAiStatus(Request $request, $chatId): JsonResponse
     {
-        \Log::info('ChatAi: Getting AI status', [
-            'chat_id' => $chatId,
-            'user_id' => $request->user()->id,
-            'tenant_id' => $request->user()->tenant_id,
-        ]);
+        try {
+            $user = $request->user();
+            if (!$user->tenant_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User is not associated with a tenant'
+                ], 403);
+            }
 
-        $chat = Chat::where('id', $chatId)
-            ->where('tenant_id', $request->user()->tenant_id)
-            ->first();
+            $subdomain = tenant_subdomain_by_tenant_id($user->tenant_id);
 
-        if (!$chat) {
-            \Log::warning('ChatAi: Chat not found', ['chat_id' => $chatId]);
+            $chat = Chat::fromTenant($subdomain)
+                ->where('id', $chatId)
+                ->where('tenant_id', $user->tenant_id)
+                ->first();
+
+            if (!$chat) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Chat not found',
+                ], 404);
+            }
+
+            $contact = Contact::fromTenant($subdomain)
+                ->where('id', $chat->type_id)
+                ->first();
+
+            if (!$contact) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Contact not found',
+                ], 404);
+            }
+
             return response()->json([
-                'success' => false,
-                'message' => 'Chat not found',
-            ], 404);
-        }
-
-        \Log::info('ChatAi: Chat found', [
-            'chat_id' => $chat->id,
-            'type_id' => $chat->type_id,
-        ]);
-
-        $subdomain = tenant_subdomain();
-        \Log::info('ChatAi: Using subdomain', ['subdomain' => $subdomain]);
-
-        $contact = Contact::fromTenant($subdomain)
-            ->where('id', $chat->type_id)
-            ->first();
-
-        if (!$contact) {
-            \Log::warning('ChatAi: Contact not found', [
-                'type_id' => $chat->type_id,
-                'subdomain' => $subdomain,
+                'success' => true,
+                'ai_disabled' => (bool) $contact->ai_disabled,
+                'ai_enabled' => !$contact->ai_disabled,
             ]);
+        } catch (\Exception $e) {
+            \Log::error('ChatAi Status Error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Contact not found',
-            ], 404);
+                'message' => 'Error: ' . $e->getMessage(),
+            ], 500);
         }
+    }
 
-        \Log::info('ChatAi: Contact found', [
-            'contact_id' => $contact->id,
-            'ai_disabled' => $contact->ai_disabled,
-        ]);
+    /**
+     * Enable AI for a chat
+     */
+    public function enableAi(Request $request, $chatId): JsonResponse
+    {
+        try {
+            $user = $request->user();
+            if (!$user->tenant_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User is not associated with a tenant'
+                ], 403);
+            }
 
-        return response()->json([
-            'success' => true,
-            'ai_disabled' => (bool) $contact->ai_disabled,
-            'ai_enabled' => !$contact->ai_disabled,
-        ]);
+            $subdomain = tenant_subdomain_by_tenant_id($user->tenant_id);
+
+            $chat = Chat::fromTenant($subdomain)
+                ->where('id', $chatId)
+                ->where('tenant_id', $user->tenant_id)
+                ->first();
+
+            if (!$chat) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Chat not found',
+                ], 404);
+            }
+
+            $contact = Contact::fromTenant($subdomain)
+                ->where('id', $chat->type_id)
+                ->first();
+
+            if (!$contact) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Contact not found',
+                ], 404);
+            }
+
+            $contact->ai_disabled = false;
+            $contact->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'AI enabled for this chat',
+                'ai_disabled' => false,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('ChatAi Enable Error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Disable AI for a chat
+     */
+    public function disableAi(Request $request, $chatId): JsonResponse
+    {
+        try {
+            $user = $request->user();
+            if (!$user->tenant_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User is not associated with a tenant'
+                ], 403);
+            }
+
+            $subdomain = tenant_subdomain_by_tenant_id($user->tenant_id);
+
+            $chat = Chat::fromTenant($subdomain)
+                ->where('id', $chatId)
+                ->where('tenant_id', $user->tenant_id)
+                ->first();
+
+            if (!$chat) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Chat not found',
+                ], 404);
+            }
+
+            $contact = Contact::fromTenant($subdomain)
+                ->where('id', $chat->type_id)
+                ->first();
+
+            if (!$contact) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Contact not found',
+                ], 404);
+            }
+
+            $contact->ai_disabled = true;
+            $contact->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'AI disabled for this chat',
+                'ai_disabled' => true,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('ChatAi Disable Error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 }
