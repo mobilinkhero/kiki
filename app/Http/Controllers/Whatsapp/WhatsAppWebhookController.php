@@ -3482,111 +3482,6 @@ class WhatsAppWebhookController extends Controller
                 $pusherService->trigger('whatsmark-saas-chat-channel', 'whatsmark-saas-chat-event', [
                     'chat' => $chatData,
                 ]);
-
-                // Send FCM push notification to assigned agent
-                \Log::channel('push_notification')->info('🎯 ========== NEW MESSAGE RECEIVED ==========', [
-                    'chat_id' => $chatId,
-                    'message_id' => $messageDbId,
-                    'timestamp' => now()->toDateTimeString(),
-                ]);
-
-                try {
-                    $contact = \App\Models\Tenant\Contact::find($chatId);
-
-                    if (!$contact) {
-                        \Log::channel('push_notification')->warning('⚠️ Contact not found', ['chat_id' => $chatId]);
-                    } else {
-                        \Log::channel('push_notification')->info('✅ Contact found', [
-                            'contact_id' => $contact->id,
-                            'contact_name' => $contact->name,
-                            'assigned_agent_id' => $contact->assigned_agent_id,
-                        ]);
-
-                        if ($contact->assigned_agent_id) {
-                            $agent = \App\Models\User::find($contact->assigned_agent_id);
-
-                            if (!$agent) {
-                                \Log::channel('push_notification')->warning('⚠️ Assigned agent not found', [
-                                    'agent_id' => $contact->assigned_agent_id,
-                                ]);
-                            } else {
-                                \Log::channel('push_notification')->info('✅ Agent found', [
-                                    'agent_id' => $agent->id,
-                                    'agent_name' => ($agent->firstname ?? '') . ' ' . ($agent->lastname ?? ''),
-                                    'has_fcm_token' => !empty($agent->fcm_token),
-                                    'fcm_token_preview' => $agent->fcm_token ? substr($agent->fcm_token, 0, 30) . '...' : null,
-                                ]);
-
-                                if ($agent->fcm_token) {
-                                    \Log::channel('push_notification')->info('🚀 Initiating FCM notification send');
-
-                                    $fcmService = new \App\Services\FcmService();
-                                    $result = $fcmService->sendNotification(
-                                        $agent->fcm_token,
-                                        $contact->name ?? 'New Message',
-                                        $chatData['last_message'] ?? 'You have a new message',
-                                        [
-                                            'chat_id' => (string) $chatId,
-                                            'chat_name' => $contact->name ?? 'Chat',
-                                            'message' => $chatData['last_message'] ?? '',
-                                        ]
-                                    );
-
-                                    \Log::channel('push_notification')->info($result ? '✅ FCM notification completed successfully' : '❌ FCM notification failed', [
-                                        'result' => $result,
-                                    ]);
-                                } else {
-                                    \Log::channel('push_notification')->warning('⚠️ Agent has no FCM token - notification skipped');
-                                }
-                            }
-                        } else {
-                            // No agent assigned - send to ALL users with FCM tokens
-                            \Log::channel('push_notification')->info('ℹ️ No agent assigned - sending to all users with FCM tokens');
-
-                            $usersWithTokens = \App\Models\User::whereNotNull('fcm_token')->get();
-                            \Log::channel('push_notification')->info('👥 Found users with FCM tokens', [
-                                'count' => $usersWithTokens->count(),
-                            ]);
-
-                            $fcmService = new \App\Services\FcmService();
-                            $sentCount = 0;
-
-                            foreach ($usersWithTokens as $user) {
-                                \Log::channel('push_notification')->info('📤 Sending to user', [
-                                    'user_id' => $user->id,
-                                    'user_name' => ($user->firstname ?? '') . ' ' . ($user->lastname ?? ''),
-                                ]);
-
-                                $result = $fcmService->sendNotification(
-                                    $user->fcm_token,
-                                    $contact->name ?? 'New Message',
-                                    $chatData['last_message'] ?? 'You have a new message',
-                                    [
-                                        'chat_id' => (string) $chatId,
-                                        'chat_name' => $contact->name ?? 'Chat',
-                                        'message' => $chatData['last_message'] ?? '',
-                                    ]
-                                );
-
-                                if ($result) {
-                                    $sentCount++;
-                                }
-                            }
-
-                            \Log::channel('push_notification')->info('📊 Notification broadcast complete', [
-                                'total_users' => $usersWithTokens->count(),
-                                'sent_successfully' => $sentCount,
-                            ]);
-                        }
-                    }
-                } catch (\Exception $e) {
-                    \Log::channel('push_notification')->error('❌ EXCEPTION in FCM notification', [
-                        'error' => $e->getMessage(),
-                        'file' => $e->getFile(),
-                        'line' => $e->getLine(),
-                        'trace' => $e->getTraceAsString(),
-                    ]);
-                }
             }
         } catch (\Exception $e) {
             whatsapp_log('Error triggering chat notification', 'error', [
@@ -3594,6 +3489,113 @@ class WhatsAppWebhookController extends Controller
                 'message_db_id' => $messageDbId,
                 'error' => $e->getMessage(),
             ], $e);
+        }
+
+        // Send FCM push notification (ALWAYS, regardless of Pusher config)
+        \Log::channel('push_notification')->info('🎯 ========== NEW MESSAGE RECEIVED ==========', [
+            'chat_id' => $chatId,
+            'message_id' => $messageDbId,
+            'timestamp' => now()->toDateTimeString(),
+        ]);
+
+        try {
+            $contact = \App\Models\Tenant\Contact::find($chatId);
+
+            if (!$contact) {
+                \Log::channel('push_notification')->warning('⚠️ Contact not found', ['chat_id' => $chatId]);
+            } else {
+                \Log::channel('push_notification')->info('✅ Contact found', [
+                    'contact_id' => $contact->id,
+                    'contact_name' => $contact->name,
+                    'assigned_agent_id' => $contact->assigned_agent_id,
+                ]);
+
+                $chatData = ManageChat::newChatMessage($chatId, $messageDbId, $this->tenant_id);
+
+                if ($contact->assigned_agent_id) {
+                    $agent = \App\Models\User::find($contact->assigned_agent_id);
+
+                    if (!$agent) {
+                        \Log::channel('push_notification')->warning('⚠️ Assigned agent not found', [
+                            'agent_id' => $contact->assigned_agent_id,
+                        ]);
+                    } else {
+                        \Log::channel('push_notification')->info('✅ Agent found', [
+                            'agent_id' => $agent->id,
+                            'agent_name' => ($agent->firstname ?? '') . ' ' . ($agent->lastname ?? ''),
+                            'has_fcm_token' => !empty($agent->fcm_token),
+                            'fcm_token_preview' => $agent->fcm_token ? substr($agent->fcm_token, 0, 30) . '...' : null,
+                        ]);
+
+                        if ($agent->fcm_token) {
+                            \Log::channel('push_notification')->info('🚀 Initiating FCM notification send');
+
+                            $fcmService = new \App\Services\FcmService();
+                            $result = $fcmService->sendNotification(
+                                $agent->fcm_token,
+                                $contact->name ?? 'New Message',
+                                $chatData['last_message'] ?? 'You have a new message',
+                                [
+                                    'chat_id' => (string) $chatId,
+                                    'chat_name' => $contact->name ?? 'Chat',
+                                    'message' => $chatData['last_message'] ?? '',
+                                ]
+                            );
+
+                            \Log::channel('push_notification')->info($result ? '✅ FCM notification completed successfully' : '❌ FCM notification failed', [
+                                'result' => $result,
+                            ]);
+                        } else {
+                            \Log::channel('push_notification')->warning('⚠️ Agent has no FCM token - notification skipped');
+                        }
+                    }
+                } else {
+                    // No agent assigned - send to ALL users with FCM tokens
+                    \Log::channel('push_notification')->info('ℹ️ No agent assigned - sending to all users with FCM tokens');
+
+                    $usersWithTokens = \App\Models\User::whereNotNull('fcm_token')->get();
+                    \Log::channel('push_notification')->info('👥 Found users with FCM tokens', [
+                        'count' => $usersWithTokens->count(),
+                    ]);
+
+                    $fcmService = new \App\Services\FcmService();
+                    $sentCount = 0;
+
+                    foreach ($usersWithTokens as $user) {
+                        \Log::channel('push_notification')->info('📤 Sending to user', [
+                            'user_id' => $user->id,
+                            'user_name' => ($user->firstname ?? '') . ' ' . ($user->lastname ?? ''),
+                        ]);
+
+                        $result = $fcmService->sendNotification(
+                            $user->fcm_token,
+                            $contact->name ?? 'New Message',
+                            $chatData['last_message'] ?? 'You have a new message',
+                            [
+                                'chat_id' => (string) $chatId,
+                                'chat_name' => $contact->name ?? 'Chat',
+                                'message' => $chatData['last_message'] ?? '',
+                            ]
+                        );
+
+                        if ($result) {
+                            $sentCount++;
+                        }
+                    }
+
+                    \Log::channel('push_notification')->info('📊 Notification broadcast complete', [
+                        'total_users' => $usersWithTokens->count(),
+                        'sent_successfully' => $sentCount,
+                    ]);
+                }
+            }
+        } catch (\Exception $e) {
+            \Log::channel('push_notification')->error('❌ EXCEPTION in FCM notification', [
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]);
         }
     }
 
