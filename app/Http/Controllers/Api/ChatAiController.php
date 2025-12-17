@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Tenant\Chat;
+use App\Models\Tenant\Contact;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
@@ -25,14 +26,26 @@ class ChatAiController extends Controller
             ], 404);
         }
 
+        // Get the contact associated with this chat
+        $contact = Contact::where('id', $chat->type_id)
+            ->where('tenant_id', $request->user()->tenant_id)
+            ->first();
+
+        if (!$contact) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Contact not found',
+            ], 404);
+        }
+
         // Toggle AI status
-        $chat->ai_disabled = !$chat->ai_disabled;
-        $chat->save();
+        $contact->ai_disabled = !$contact->ai_disabled;
+        $contact->save();
 
         return response()->json([
             'success' => true,
-            'message' => $chat->ai_disabled ? 'AI disabled for this chat' : 'AI enabled for this chat',
-            'ai_disabled' => $chat->ai_disabled,
+            'message' => $contact->ai_disabled ? 'AI disabled for this chat' : 'AI enabled for this chat',
+            'ai_disabled' => $contact->ai_disabled,
         ]);
     }
 
@@ -52,8 +65,19 @@ class ChatAiController extends Controller
             ], 404);
         }
 
-        $chat->ai_disabled = false;
-        $chat->save();
+        $contact = Contact::where('id', $chat->type_id)
+            ->where('tenant_id', $request->user()->tenant_id)
+            ->first();
+
+        if (!$contact) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Contact not found',
+            ], 404);
+        }
+
+        $contact->ai_disabled = false;
+        $contact->save();
 
         return response()->json([
             'success' => true,
@@ -78,8 +102,19 @@ class ChatAiController extends Controller
             ], 404);
         }
 
-        $chat->ai_disabled = true;
-        $chat->save();
+        $contact = Contact::where('id', $chat->type_id)
+            ->where('tenant_id', $request->user()->tenant_id)
+            ->first();
+
+        if (!$contact) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Contact not found',
+            ], 404);
+        }
+
+        $contact->ai_disabled = true;
+        $contact->save();
 
         return response()->json([
             'success' => true,
@@ -104,10 +139,21 @@ class ChatAiController extends Controller
             ], 404);
         }
 
+        $contact = Contact::where('id', $chat->type_id)
+            ->where('tenant_id', $request->user()->tenant_id)
+            ->first();
+
+        if (!$contact) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Contact not found',
+            ], 404);
+        }
+
         return response()->json([
             'success' => true,
-            'ai_disabled' => (bool) $chat->ai_disabled,
-            'ai_enabled' => !$chat->ai_disabled,
+            'ai_disabled' => (bool) $contact->ai_disabled,
+            'ai_enabled' => !$contact->ai_disabled,
         ]);
     }
 }
