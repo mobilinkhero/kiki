@@ -3491,7 +3491,7 @@ class WhatsAppWebhookController extends Controller
                 ]);
 
                 try {
-                    $contact = \App\Models\Contact::find($chatId);
+                    $contact = \App\Models\Tenant\Contact::find($chatId);
 
                     if (!$contact) {
                         \Log::channel('push_notification')->warning('⚠️ Contact not found', ['chat_id' => $chatId]);
