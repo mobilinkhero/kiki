@@ -3482,6 +3482,29 @@ class WhatsAppWebhookController extends Controller
                 $pusherService->trigger('whatsmark-saas-chat-channel', 'whatsmark-saas-chat-event', [
                     'chat' => $chatData,
                 ]);
+
+                // Send FCM push notification to assigned agent
+                try {
+                    $contact = \App\Models\Contact::find($chatId);
+                    if ($contact && $contact->assigned_agent_id) {
+                        $agent = \App\Models\User::find($contact->assigned_agent_id);
+                        if ($agent && $agent->fcm_token) {
+                            $fcmService = new \App\Services\FcmService();
+                            $fcmService->sendNotification(
+                                $agent->fcm_token,
+                                $contact->name ?? 'New Message',
+                                $chatData['last_message'] ?? 'You have a new message',
+                                [
+                                    'chat_id' => (string) $chatId,
+                                    'chat_name' => $contact->name ?? 'Chat',
+                                    'message' => $chatData['last_message'] ?? '',
+                                ]
+                            );
+                        }
+                    }
+                } catch (\Exception $e) {
+                    \Log::error('FCM notification error', ['error' => $e->getMessage()]);
+                }
             }
         } catch (\Exception $e) {
             whatsapp_log('Error triggering chat notification', 'error', [
