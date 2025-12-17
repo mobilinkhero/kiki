@@ -132,28 +132,51 @@ class ChatAiController extends Controller
      */
     public function getAiStatus(Request $request, $chatId): JsonResponse
     {
+        \Log::info('ChatAi: Getting AI status', [
+            'chat_id' => $chatId,
+            'user_id' => $request->user()->id,
+            'tenant_id' => $request->user()->tenant_id,
+        ]);
+
         $chat = Chat::where('id', $chatId)
             ->where('tenant_id', $request->user()->tenant_id)
             ->first();
 
         if (!$chat) {
+            \Log::warning('ChatAi: Chat not found', ['chat_id' => $chatId]);
             return response()->json([
                 'success' => false,
                 'message' => 'Chat not found',
             ], 404);
         }
 
+        \Log::info('ChatAi: Chat found', [
+            'chat_id' => $chat->id,
+            'type_id' => $chat->type_id,
+        ]);
+
         $subdomain = tenant_subdomain();
+        \Log::info('ChatAi: Using subdomain', ['subdomain' => $subdomain]);
+
         $contact = Contact::fromTenant($subdomain)
             ->where('id', $chat->type_id)
             ->first();
 
         if (!$contact) {
+            \Log::warning('ChatAi: Contact not found', [
+                'type_id' => $chat->type_id,
+                'subdomain' => $subdomain,
+            ]);
             return response()->json([
                 'success' => false,
                 'message' => 'Contact not found',
             ], 404);
         }
+
+        \Log::info('ChatAi: Contact found', [
+            'contact_id' => $contact->id,
+            'ai_disabled' => $contact->ai_disabled,
+        ]);
 
         return response()->json([
             'success' => true,
