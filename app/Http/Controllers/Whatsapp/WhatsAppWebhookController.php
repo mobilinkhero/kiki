@@ -4141,12 +4141,6 @@ class WhatsAppWebhookController extends Controller
                     ->where('tenant_id', $this->tenant_id)
                     ->get();
 
-                \Log::info('FCM Debug', [
-                    'tenant_id' => $this->tenant_id,
-                    'users_found' => $usersWithTokens->count(),
-                    'user_ids' => $usersWithTokens->pluck('id')->toArray()
-                ]);
-
                 foreach ($usersWithTokens as $user) {
 
 
