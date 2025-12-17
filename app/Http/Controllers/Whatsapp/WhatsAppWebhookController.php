@@ -4062,9 +4062,12 @@ class WhatsAppWebhookController extends Controller
                 'timestamp' => now()->toDateTimeString(),
             ]);
 
-            // Find contact by phone number
-            $contact = \App\Models\Tenant\Contact::where('receiver_id', $from)
-                ->where('tenant_id', $this->tenant_id)
+            // Get subdomain for tenant
+            $subdomain = tenant_subdomain_by_tenant_id($this->tenant_id);
+
+            // Find contact by phone number using tenant subdomain
+            $contact = \App\Models\Tenant\Contact::fromTenant($subdomain)
+                ->where('receiver_id', $from)
                 ->first();
 
             if (!$contact) {
