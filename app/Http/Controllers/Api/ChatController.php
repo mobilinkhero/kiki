@@ -41,6 +41,19 @@ class ChatController extends Controller
             ->orderBy('last_msg_time', 'desc')
             ->paginate($request->input('per_page', 20));
 
+        // Add unread count to each chat
+        $chats->getCollection()->transform(function ($chat) use ($subdomain, $user) {
+            $unreadCount = ChatMessage::fromTenant($subdomain)
+                ->where('interaction_id', $chat->id)
+                ->where('tenant_id', $user->tenant_id)
+                ->where('is_read', false)
+                ->whereNull('staff_id') // Only count customer messages, not staff messages
+                ->count();
+
+            $chat->unread_count = $unreadCount;
+            return $chat;
+        });
+
         return response()->json([
             'success' => true,
             'data' => $chats
