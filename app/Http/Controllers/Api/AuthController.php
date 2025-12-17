@@ -482,8 +482,18 @@ class AuthController extends Controller
             ], 422);
         }
 
-        $request->user()->update([
-            'fcm_token' => $request->token,
+        $fcmToken = $request->token;
+        $currentUser = $request->user();
+
+        // Remove this FCM token from any other user who has it
+        // This prevents duplicate notifications when the same device logs in with different accounts
+        User::where('fcm_token', $fcmToken)
+            ->where('id', '!=', $currentUser->id)
+            ->update(['fcm_token' => null]);
+
+        // Update current user's FCM token
+        $currentUser->update([
+            'fcm_token' => $fcmToken,
         ]);
 
         return response()->json([
