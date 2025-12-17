@@ -53,6 +53,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // FCM Token management
     Route::post('/fcm-token', [AuthController::class, 'updateFcmToken']);
 
+    // FCM Testing (for debugging)
+    Route::get('/fcm/test', [\App\Http\Controllers\Api\FcmTestController::class, 'testNotification']);
+    Route::get('/fcm/config', [\App\Http\Controllers\Api\FcmTestController::class, 'checkConfig']);
+
     // Tenant management
     Route::prefix('tenant')->group(function () {
         Route::get('/', [TenantController::class, 'current']);

@@ -89,7 +89,7 @@ return [
             'handler_with' => [
                 'host' => env('PAPERTRAIL_URL'),
                 'port' => env('PAPERTRAIL_PORT'),
-                'connectionString' => 'tls://'.env('PAPERTRAIL_URL').':'.env('PAPERTRAIL_PORT'),
+                'connectionString' => 'tls://' . env('PAPERTRAIL_URL') . ':' . env('PAPERTRAIL_PORT'),
             ],
             'processors' => [PsrLogMessageProcessor::class],
         ],
@@ -148,6 +148,13 @@ return [
             'level' => env('LOG_LEVEL', 'debug'),
             'days' => 14,
             'enabled' => env('PAYMENT_LOGGING_ENABLED', false),
+        ],
+
+        'push_notification' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/push_notification_debug.log'),
+            'level' => 'debug',
+            'replace_placeholders' => true,
         ],
 
     ],

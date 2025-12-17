@@ -21,9 +21,16 @@ class FcmService
     private function getAccessToken()
     {
         if (!file_exists($this->serviceAccountPath)) {
-            Log::error('Firebase service account file not found at: ' . $this->serviceAccountPath);
+            \Log::channel('push_notification')->error('❌ Firebase service account file not found', [
+                'path' => $this->serviceAccountPath,
+                'exists' => file_exists($this->serviceAccountPath),
+            ]);
             return null;
         }
+
+        \Log::channel('push_notification')->info('✅ Loading service account file', [
+            'path' => $this->serviceAccountPath,
+        ]);
 
         $serviceAccount = json_decode(file_get_contents($this->serviceAccountPath), true);
 
