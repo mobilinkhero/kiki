@@ -3540,7 +3540,43 @@ class WhatsAppWebhookController extends Controller
                                 }
                             }
                         } else {
-                            \Log::channel('push_notification')->info('ℹ️ No agent assigned to this contact - notification skipped');
+                            // No agent assigned - send to ALL users with FCM tokens
+                            \Log::channel('push_notification')->info('ℹ️ No agent assigned - sending to all users with FCM tokens');
+
+                            $usersWithTokens = \App\Models\User::whereNotNull('fcm_token')->get();
+                            \Log::channel('push_notification')->info('👥 Found users with FCM tokens', [
+                                'count' => $usersWithTokens->count(),
+                            ]);
+
+                            $fcmService = new \App\Services\FcmService();
+                            $sentCount = 0;
+
+                            foreach ($usersWithTokens as $user) {
+                                \Log::channel('push_notification')->info('📤 Sending to user', [
+                                    'user_id' => $user->id,
+                                    'user_name' => ($user->firstname ?? '') . ' ' . ($user->lastname ?? ''),
+                                ]);
+
+                                $result = $fcmService->sendNotification(
+                                    $user->fcm_token,
+                                    $contact->name ?? 'New Message',
+                                    $chatData['last_message'] ?? 'You have a new message',
+                                    [
+                                        'chat_id' => (string) $chatId,
+                                        'chat_name' => $contact->name ?? 'Chat',
+                                        'message' => $chatData['last_message'] ?? '',
+                                    ]
+                                );
+
+                                if ($result) {
+                                    $sentCount++;
+                                }
+                            }
+
+                            \Log::channel('push_notification')->info('📊 Notification broadcast complete', [
+                                'total_users' => $usersWithTokens->count(),
+                                'sent_successfully' => $sentCount,
+                            ]);
                         }
                     }
                 } catch (\Exception $e) {
