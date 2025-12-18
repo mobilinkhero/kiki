@@ -61,6 +61,82 @@ class ChatController extends Controller
     }
 
     /**
+     * Search Chats
+     *
+     * Search all chats by contact name, phone number, or message content.
+     *
+     * @authenticated
+     * @queryParam q string required The search query.
+     */
+    public function searchChats(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if (!$user->tenant_id) {
+            return response()->json(['success' => false, 'message' => 'User is not associated with a tenant'], 403);
+        }
+
+        $query = $request->input('q', '');
+        if (empty(trim($query))) {
+            return response()->json(['success' => true, 'data' => ['data' => []]]);
+        }
+
+        $subdomain = tenant_subdomain_by_tenant_id($user->tenant_id);
+
+        // Search in chats by receiver_id (phone number) or last_msg
+        $chats = Chat::fromTenant($subdomain)
+            ->where('tenant_id', $user->tenant_id)
+            ->where(function ($q) use ($query) {
+                $q->where('receiver_id', 'LIKE', '%' . $query . '%')
+                    ->orWhere('last_msg', 'LIKE', '%' . $query . '%');
+            })
+            ->orderBy('last_msg_time', 'desc')
+            ->limit(50) // Limit to 50 results for performance
+            ->get();
+
+        // Also search in contacts by name or phone
+        $contactIds = \App\Models\Tenant\Contact::fromTenant($subdomain)
+            ->where('tenant_id', $user->tenant_id)
+            ->where(function ($q) use ($query) {
+                $q->where('firstname', 'LIKE', '%' . $query . '%')
+                    ->orWhere('lastname', 'LIKE', '%' . $query . '%')
+                    ->orWhere('phone', 'LIKE', '%' . $query . '%');
+            })
+            ->pluck('id');
+
+        // Get chats for matching contacts
+        if ($contactIds->isNotEmpty()) {
+            $contactChats = Chat::fromTenant($subdomain)
+                ->where('tenant_id', $user->tenant_id)
+                ->whereIn('type_id', $contactIds)
+                ->where('type', 'lead')
+                ->orderBy('last_msg_time', 'desc')
+                ->limit(50)
+                ->get();
+
+            // Merge and remove duplicates
+            $chats = $chats->merge($contactChats)->unique('id')->sortByDesc('last_msg_time')->values();
+        }
+
+        // Add unread count to each chat
+        $chats->transform(function ($chat) use ($subdomain, $user) {
+            $unreadCount = \App\Models\Tenant\ChatMessage::fromTenant($subdomain)
+                ->where('interaction_id', $chat->id)
+                ->where('tenant_id', $user->tenant_id)
+                ->where('is_read', false)
+                ->whereNull('staff_id')
+                ->count();
+
+            $chat->unread_count = $unreadCount;
+            return $chat;
+        });
+
+        return response()->json([
+            'success' => true,
+            'data' => ['data' => $chats->take(50)] // Return max 50 results
+        ]);
+    }
+
+    /**
      * Get Chat Messages
      *
      * Retrieve messages for a specific chat.
