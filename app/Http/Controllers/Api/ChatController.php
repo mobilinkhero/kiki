@@ -117,6 +117,25 @@ class ChatController extends Controller
             $chats = $chats->merge($contactChats)->unique('id')->sortByDesc('last_msg_time')->values();
         }
 
+        // IMPORTANT: Also search in ALL chat messages (not just last_message)
+        $chatIdsFromMessages = ChatMessage::fromTenant($subdomain)
+            ->where('tenant_id', $user->tenant_id)
+            ->where('message', 'LIKE', '%' . $query . '%')
+            ->distinct()
+            ->pluck('interaction_id');
+
+        if ($chatIdsFromMessages->isNotEmpty()) {
+            $messageChats = Chat::fromTenant($subdomain)
+                ->where('tenant_id', $user->tenant_id)
+                ->whereIn('id', $chatIdsFromMessages)
+                ->orderBy('last_msg_time', 'desc')
+                ->limit(50)
+                ->get();
+
+            // Merge with existing results
+            $chats = $chats->merge($messageChats)->unique('id')->sortByDesc('last_msg_time')->values();
+        }
+
         // Add unread count to each chat
         $chats->transform(function ($chat) use ($subdomain, $user) {
             $unreadCount = \App\Models\Tenant\ChatMessage::fromTenant($subdomain)
