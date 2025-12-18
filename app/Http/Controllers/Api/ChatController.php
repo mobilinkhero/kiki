@@ -189,7 +189,7 @@ class ChatController extends Controller
                 // This URL must be accessible from the internet (WhatsApp servers)
                 // Since we made /api/media/ public, this should work if the server is public.
                 // If localhost, this part might fail on WhatsApp side, but logic is correct.
-                $mediaUrl = "https://soft.chatvoo.com/api/media/" . $storedFilename;
+                $mediaUrl = "https://dash.chatvoo.com/api/media/" . $storedFilename;
             }
         } catch (\Throwable $e) {
             return response()->json([
