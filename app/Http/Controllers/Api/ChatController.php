@@ -87,7 +87,7 @@ class ChatController extends Controller
             ->where('tenant_id', $user->tenant_id)
             ->where(function ($q) use ($query) {
                 $q->where('receiver_id', 'LIKE', '%' . $query . '%')
-                    ->orWhere('last_msg', 'LIKE', '%' . $query . '%');
+                    ->orWhere('last_message', 'LIKE', '%' . $query . '%');
             })
             ->orderBy('last_msg_time', 'desc')
             ->limit(50) // Limit to 50 results for performance
