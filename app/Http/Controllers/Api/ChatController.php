@@ -247,9 +247,21 @@ class ChatController extends Controller
 
             if ($response) {
                 $response_data = $response->decodedBody();
+
+                // Log the full response for debugging
+                \Log::info('WhatsApp API Response', [
+                    'type' => $type,
+                    'media_url' => $mediaUrl,
+                    'response' => $response_data
+                ]);
+
                 if (isset($response_data['messages'][0]['id'])) {
                     $waMessageId = $response_data['messages'][0]['id'];
                     $whatsapp_success = true;
+                } else {
+                    \Log::error('WhatsApp API - No message ID in response', [
+                        'response' => $response_data
+                    ]);
                 }
             }
 
