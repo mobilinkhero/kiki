@@ -160,10 +160,29 @@ class ApgPaymentController extends Controller
      */
     public function handleReturn(Request $request)
     {
+        // Immediate log to verify this method is being called
+        $logFile = storage_path('logs/paymentgateway.log');
+        file_put_contents($logFile, "=== HANDLE RETURN CALLED ===\n", FILE_APPEND);
+        file_put_contents($logFile, "URL: " . $request->fullUrl() . "\n", FILE_APPEND);
+        file_put_contents($logFile, "All Query Params: " . json_encode($request->query()) . "\n\n", FILE_APPEND);
+
         // APG returns order ID with alias 'O'
         $orderId = $request->query('O');
         $transactionStatus = $request->query('TS'); // P = Paid, F = Failed
         $responseCode = $request->query('RC');
+        $responseDescription = $request->query('RD');
+
+        // Log return parameters
+        $returnLog = [
+            'action' => 'PAYMENT_RETURN',
+            'timestamp' => now()->toDateTimeString(),
+            'order_id' => $orderId,
+            'transaction_status' => $transactionStatus,
+            'response_code' => $responseCode,
+            'response_description' => $responseDescription,
+            'all_params' => $request->all(),
+        ];
+        file_put_contents($logFile, json_encode($returnLog, JSON_PRETTY_PRINT) . "\n\n", FILE_APPEND);
 
         if (!$orderId) {
             return redirect()->route('home')->with('error', 'Invalid payment response.');
@@ -171,14 +190,20 @@ class ApgPaymentController extends Controller
 
         try {
             // Inquire transaction status from APG
+            file_put_contents($logFile, "Inquiring transaction status for: $orderId\n\n", FILE_APPEND);
             $statusResponse = $this->apgService->inquireTransaction($orderId);
+
+            file_put_contents($logFile, "Status Response: " . json_encode($statusResponse, JSON_PRETTY_PRINT) . "\n\n", FILE_APPEND);
 
             // Update transaction with response
             $transaction = $this->apgService->updateTransaction($orderId, $statusResponse);
 
             if (!$transaction) {
+                file_put_contents($logFile, "ERROR: Transaction not found for order: $orderId\n\n", FILE_APPEND);
                 return redirect()->route('home')->with('error', 'Transaction not found.');
             }
+
+            file_put_contents($logFile, "Transaction updated: " . json_encode($transaction->toArray(), JSON_PRETTY_PRINT) . "\n\n", FILE_APPEND);
 
             // Check transaction status
             if ($transaction->isPaid()) {
@@ -193,6 +218,13 @@ class ApgPaymentController extends Controller
             }
 
         } catch (\Exception $e) {
+            $errorLog = [
+                'action' => 'PAYMENT_RETURN_ERROR',
+                'timestamp' => now()->toDateTimeString(),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ];
+            file_put_contents($logFile, json_encode($errorLog, JSON_PRETTY_PRINT) . "\n\n", FILE_APPEND);
             Log::error('APG Return Handler Error: ' . $e->getMessage());
             return redirect()->route('home')->with('error', 'An error occurred while processing your payment.');
         }

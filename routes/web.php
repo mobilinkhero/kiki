@@ -72,7 +72,8 @@ Route::prefix('payment/apg')->name('payment.apg.')->group(function () {
 });
 
 // APG Routes with /alfa/ path (to match APG portal configuration)
-Route::prefix('payment/alfa')->name('payment.alfa.')->group(function () {
+// Works on both main domain and soft subdomain
+Route::domain('{domain?}')->prefix('payment/alfa')->name('payment.alfa.')->group(function () {
     Route::post('/initiate', [App\Http\Controllers\Payment\ApgPaymentController::class, 'initiatePayment'])
         ->name('initiate')->middleware('auth');
     Route::get('/callback', [App\Http\Controllers\Payment\ApgPaymentController::class, 'handleCallback'])
