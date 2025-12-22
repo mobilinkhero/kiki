@@ -136,25 +136,9 @@ class AlfaPaymentService
         }
         $queryString = implode('&', $queryParts);
 
-        $hashData = [
-            'action' => 'HASH_GENERATION',
-            'timestamp' => now()->toDateTimeString(),
-            'query_string_to_encrypt' => $queryString,
-            'encryption_key' => $this->config['encryption']['key1'],
-            'encryption_iv' => $this->config['encryption']['key2'],
-            'generated_hash' => $requestHash,
-        ];
-        file_put_contents($logFile, json_encode($hashData, JSON_PRETTY_PRINT) . "\n\n", FILE_APPEND);
 
-        // Log full request details
-        $requestLog = [
-            'action' => 'APG_HANDSHAKE_REQUEST',
-            'timestamp' => now()->toDateTimeString(),
-            'url' => $this->urls['handshake'],
-            'environment' => $this->config['environment'],
-            'params' => $params,
-        ];
-        file_put_contents($logFile, json_encode($requestLog, JSON_PRETTY_PRINT) . "\n\n", FILE_APPEND);
+
+
 
         // Log request
         $this->logRequest('handshake', $this->urls['handshake'], $params);
@@ -166,15 +150,7 @@ class AlfaPaymentService
 
             $result = $response->json();
 
-            // Log full response
-            $responseLog = [
-                'action' => 'APG_HANDSHAKE_RESPONSE',
-                'timestamp' => now()->toDateTimeString(),
-                'status_code' => $response->status(),
-                'response_body' => $result,
-                'raw_body' => $response->body(),
-            ];
-            file_put_contents($logFile, json_encode($responseLog, JSON_PRETTY_PRINT) . "\n\n", FILE_APPEND);
+
 
             // Log response
             $this->logResponse('handshake', $result, $response->status(), $transactionReferenceNumber);
@@ -241,16 +217,7 @@ class AlfaPaymentService
         }
         $queryString = implode('&', $queryParts);
 
-        $paymentLog = [
-            'action' => 'PAYMENT_REQUEST_PREPARATION',
-            'timestamp' => now()->toDateTimeString(),
-            'payment_method' => $paymentMethod,
-            'query_string_to_encrypt' => $queryString,
-            'generated_hash' => $requestHash,
-            'params' => $params,
-            'url' => $this->urls['payment'],
-        ];
-        file_put_contents($logFile, json_encode($paymentLog, JSON_PRETTY_PRINT) . "\n\n", FILE_APPEND);
+
 
         // Log request
         $this->logRequest('payment', $this->urls['payment'], $params, $transactionReferenceNumber);
@@ -389,15 +356,7 @@ class AlfaPaymentService
             'user_agent' => request()->userAgent(),
         ]);
 
-        // Also log to file for immediate visibility
-        $logFile = storage_path('logs/paymentgateway.log');
-        file_put_contents($logFile, json_encode([
-            'timestamp' => now()->toDateTimeString(),
-            'action' => 'APG_REQUEST_' . strtoupper($action),
-            'url' => $url,
-            'payload' => $payload,
-            'transaction_ref' => $transactionRef,
-        ], JSON_PRETTY_PRINT) . "\n\n", FILE_APPEND);
+
     }
 
     /**
@@ -422,15 +381,7 @@ class AlfaPaymentService
             ]);
         }
 
-        // Also log to file for immediate visibility
-        $logFile = storage_path('logs/paymentgateway.log');
-        file_put_contents($logFile, json_encode([
-            'timestamp' => now()->toDateTimeString(),
-            'action' => 'APG_RESPONSE_' . strtoupper($action),
-            'status_code' => $statusCode,
-            'response' => $response,
-            'transaction_ref' => $transactionRef,
-        ], JSON_PRETTY_PRINT) . "\n\n", FILE_APPEND);
+
     }
 
     /**
@@ -454,14 +405,7 @@ class AlfaPaymentService
             ]);
         }
 
-        // Also log to file for immediate visibility
-        $logFile = storage_path('logs/paymentgateway.log');
-        file_put_contents($logFile, json_encode([
-            'timestamp' => now()->toDateTimeString(),
-            'action' => 'APG_ERROR_' . strtoupper($action),
-            'error' => $error,
-            'transaction_ref' => $transactionRef,
-        ], JSON_PRETTY_PRINT) . "\n\n", FILE_APPEND);
+
 
         Log::error("APG {$action} Error: " . $error, [
             'transaction_ref' => $transactionRef

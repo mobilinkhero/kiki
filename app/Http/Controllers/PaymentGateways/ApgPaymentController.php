@@ -76,15 +76,7 @@ class ApgPaymentController extends Controller
             return redirect()->to(tenant_route('tenant.subscription.thank-you', ['invoice' => $invoice->id]));
         }
 
-        // Log payment initiation
-        $logFile = storage_path('logs/paymentgateway.log');
-        file_put_contents($logFile, json_encode([
-            'timestamp' => now()->toDateTimeString(),
-            'action' => 'APG_CHECKOUT',
-            'invoice_id' => $invoice->id,
-            'amount' => $finalAmount,
-            'tenant_id' => tenant_id(),
-        ], JSON_PRETTY_PRINT) . "\n\n", FILE_APPEND);
+
 
         try {
             // Generate unique transaction reference number
@@ -156,13 +148,7 @@ class ApgPaymentController extends Controller
      */
     public function handleReturn(Request $request)
     {
-        // Log return
-        $logFile = storage_path('logs/paymentgateway.log');
-        file_put_contents($logFile, json_encode([
-            'timestamp' => now()->toDateTimeString(),
-            'action' => 'APG_RETURN',
-            'params' => $request->all(),
-        ], JSON_PRETTY_PRINT) . "\n\n", FILE_APPEND);
+
 
         // APG returns order ID with alias 'O'
         $orderId = $request->query('O');
@@ -203,13 +189,7 @@ class ApgPaymentController extends Controller
             // Inquire transaction status from APG
             $statusResponse = $this->apgService->inquireTransaction($orderId);
 
-            // Detailed logging of inquiry response
-            file_put_contents($logFile, json_encode([
-                'timestamp' => now()->toDateTimeString(),
-                'action' => 'APG_INQUIRY_RESPONSE',
-                'order_id' => $orderId,
-                'response' => $statusResponse,
-            ], JSON_PRETTY_PRINT) . "\n\n", FILE_APPEND);
+
 
             // Update APG transaction
             $apgTransaction = $this->apgService->updateTransaction($orderId, $statusResponse);
@@ -224,15 +204,7 @@ class ApgPaymentController extends Controller
                 $apgTransaction->refresh();
             }
 
-            // Log updated transaction state
-            file_put_contents($logFile, json_encode([
-                'timestamp' => now()->toDateTimeString(),
-                'action' => 'APG_TRANSACTION_UPDATED',
-                'order_id' => $orderId,
-                'status' => $apgTransaction->status,
-                'is_paid' => $apgTransaction->isPaid(),
-                'redirect_ts' => $transactionStatus,
-            ], JSON_PRETTY_PRINT) . "\n\n", FILE_APPEND);
+
 
             // Process invoice payment based on APG transaction status
             if ($apgTransaction->isPaid()) {
@@ -365,14 +337,7 @@ class ApgPaymentController extends Controller
             $response = Http::timeout(30)->get($targetUrl);
             $statusResponse = $response->json();
 
-            // Log details
-            $logFile = storage_path('logs/paymentgateway.log');
-            file_put_contents($logFile, json_encode([
-                'timestamp' => now()->toDateTimeString(),
-                'action' => 'APG_IPN_STATUS_INQUIRY',
-                'url' => $targetUrl,
-                'response' => $statusResponse,
-            ], JSON_PRETTY_PRINT) . "\n\n", FILE_APPEND);
+
 
             if ($response->successful() && isset($statusResponse['TransactionReferenceNumber'])) {
                 $orderId = $statusResponse['TransactionReferenceNumber'];
