@@ -360,4 +360,112 @@ class PaymentSettingsController extends Controller
 
         return redirect()->to(route('admin.dashboard'));
     }
+
+    /**
+     * Show APG (Alfa Payment Gateway) settings.
+     *
+     * @return \Illuminate\View\View
+     */
+    public function showApgSettings(PaymentSettings $settings)
+    {
+        if (!checkPermission('admin.payment_settings.view')) {
+            session()->flash('notification', [
+                'type' => 'danger',
+                'message' => t('access_denied_note'),
+            ]);
+
+            return redirect()->to(route('admin.dashboard'));
+        }
+
+        return view('admin.settings.payment.apg', [
+            'settings' => $settings,
+        ]);
+    }
+
+    /**
+     * Update APG (Alfa Payment Gateway) settings.
+     *
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function updateApgSettings(Request $request)
+    {
+        if (checkPermission('admin.payment_settings.edit')) {
+            $request->validate([
+                'apg_enabled' => ['string', 'in:on,off'],
+                'apg_merchant_id' => [
+                    'required_if:apg_enabled,on',
+                    'string',
+                    'max:255',
+                    new PurifiedInput(t('sql_injection_error')),
+                ],
+                'apg_store_id' => [
+                    'required_if:apg_enabled,on',
+                    'string',
+                    'max:255',
+                    new PurifiedInput(t('sql_injection_error')),
+                ],
+                'apg_merchant_hash' => [
+                    'required_if:apg_enabled,on',
+                    'string',
+                    'max:500',
+                    new PurifiedInput(t('sql_injection_error')),
+                ],
+                'apg_merchant_username' => [
+                    'required_if:apg_enabled,on',
+                    'string',
+                    'max:255',
+                    new PurifiedInput(t('sql_injection_error')),
+                ],
+                'apg_merchant_password' => [
+                    'required_if:apg_enabled,on',
+                    'string',
+                    'max:255',
+                    new PurifiedInput(t('sql_injection_error')),
+                ],
+                'apg_encryption_key1' => [
+                    'required_if:apg_enabled,on',
+                    'string',
+                    'size:16',
+                    new PurifiedInput(t('sql_injection_error')),
+                ],
+                'apg_encryption_key2' => [
+                    'required_if:apg_enabled,on',
+                    'string',
+                    'size:16',
+                    new PurifiedInput(t('sql_injection_error')),
+                ],
+                'apg_environment' => ['required', 'string', 'in:sandbox,production'],
+            ]);
+
+            set_settings_batch('payment', [
+                'apg_enabled' => $request->has('apg_enabled'),
+                'apg_merchant_id' => $request->apg_merchant_id ?? '',
+                'apg_store_id' => $request->apg_store_id ?? '',
+                'apg_merchant_hash' => $request->apg_merchant_hash ?? '',
+                'apg_merchant_username' => $request->apg_merchant_username ?? '',
+                'apg_merchant_password' => $request->apg_merchant_password ?? '',
+                'apg_encryption_key1' => $request->apg_encryption_key1 ?? '',
+                'apg_encryption_key2' => $request->apg_encryption_key2 ?? '',
+                'apg_environment' => $request->apg_environment ?? 'production',
+            ]);
+
+            if ($request->apg_enabled) {
+                set_setting('payment.default_gateway', 'apg');
+            }
+
+            session()->flash('notification', [
+                'type' => 'success',
+                'message' => t('settings_saved_successfully'),
+            ]);
+
+            return redirect()->to(route('admin.payment-settings'));
+        }
+
+        session()->flash('notification', [
+            'type' => 'danger',
+            'message' => t('access_denied_note'),
+        ]);
+
+        return redirect()->to(route('admin.dashboard'));
+    }
 }

@@ -28,5 +28,9 @@ Route::middleware([AdminMiddleware::class, SanitizeInputs::class])->group(functi
         // Paystack payment settings
         Route::get('/paystack', [PaymentSettingsController::class, 'showPaystackSettings'])->name('paystack');
         Route::post('/paystack', [PaymentSettingsController::class, 'updatePaystackSettings'])->name('paystack.update');
+
+        // APG (Alfa Payment Gateway) settings
+        Route::get('/apg', [PaymentSettingsController::class, 'showApgSettings'])->name('apg');
+        Route::post('/apg', [PaymentSettingsController::class, 'updateApgSettings'])->name('apg.update');
     });
 });
