@@ -71,6 +71,18 @@ Route::prefix('payment/apg')->name('payment.apg.')->group(function () {
         ->name('status');
 });
 
+// APG Routes with /alfa/ path (to match APG portal configuration)
+Route::prefix('payment/alfa')->name('payment.alfa.')->group(function () {
+    Route::post('/initiate', [App\Http\Controllers\Payment\ApgPaymentController::class, 'initiatePayment'])
+        ->name('initiate')->middleware('auth');
+    Route::get('/callback', [App\Http\Controllers\Payment\ApgPaymentController::class, 'handleCallback'])
+        ->name('callback');
+    Route::get('/return', [App\Http\Controllers\Payment\ApgPaymentController::class, 'handleReturn'])
+        ->name('return');
+    Route::post('/ipn', [App\Http\Controllers\Payment\ApgPaymentController::class, 'handleIpn'])
+        ->name('ipn');
+});
+
 // APG Test Page (can be accessed without auth for testing)
 Route::get('/payment/apg/test', function () {
     return view('payment.apg.test');
