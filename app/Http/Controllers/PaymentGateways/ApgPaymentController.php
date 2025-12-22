@@ -203,6 +203,16 @@ class ApgPaymentController extends Controller
             // Update APG transaction
             $apgTransaction = $this->apgService->updateTransaction($orderId, $statusResponse);
 
+            // Fallback: If inquiry is inconclusive but redirect params say Paid (TS=P)
+            if (!$apgTransaction->isPaid() && $transactionStatus === 'P') {
+                $apgTransaction->update([
+                    'status' => 'paid',
+                    'paid_at' => now(),
+                    'response_description' => $apgTransaction->response_description ?: 'Trusting return parameters (TS=P)',
+                ]);
+                $apgTransaction->refresh();
+            }
+
             // Log updated transaction state
             file_put_contents($logFile, json_encode([
                 'timestamp' => now()->toDateTimeString(),
@@ -210,6 +220,7 @@ class ApgPaymentController extends Controller
                 'order_id' => $orderId,
                 'status' => $apgTransaction->status,
                 'is_paid' => $apgTransaction->isPaid(),
+                'redirect_ts' => $transactionStatus,
             ], JSON_PRETTY_PRINT) . "\n\n", FILE_APPEND);
 
             // Process invoice payment based on APG transaction status
@@ -241,7 +252,7 @@ class ApgPaymentController extends Controller
                 // Payment failed
                 session()->flash('notification', [
                     'type' => 'error',
-                    'message' => t('payment_failed'),
+                    'message' => t('payment_failed') . ' (' . ($apgTransaction->response_description ?: 'Inquiry failed') . ')',
                 ]);
 
                 return redirect()->to(tenant_route('tenant.checkout.resume', ['id' => $invoice->id]));

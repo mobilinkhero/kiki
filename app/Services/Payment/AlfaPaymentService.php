@@ -317,6 +317,14 @@ class AlfaPaymentService
      */
     public function updateTransaction($transactionReferenceNumber, $responseData)
     {
+        // Handle case where APG returns raw JSON string
+        if (is_string($responseData)) {
+            $decoded = json_decode($responseData, true);
+            if (json_last_error() === JSON_ERROR_NONE) {
+                $responseData = $decoded;
+            }
+        }
+
         $transaction = ApgTransaction::where('transaction_reference_number', $transactionReferenceNumber)->first();
 
         if (!$transaction) {
@@ -331,10 +339,11 @@ class AlfaPaymentService
 
         // Update status based on TransactionStatus
         if (isset($responseData['TransactionStatus'])) {
-            $status = strtolower($responseData['TransactionStatus']);
-            $updateData['status'] = $status === 'paid' ? 'paid' : 'failed';
+            $status = strtolower(trim($responseData['TransactionStatus']));
+            // Accept both 'paid' and 'success' (some gateways use success)
+            $updateData['status'] = ($status === 'paid' || $status === 'success') ? 'paid' : 'failed';
 
-            if ($status === 'paid') {
+            if ($updateData['status'] === 'paid') {
                 $updateData['paid_at'] = now();
             }
         }
