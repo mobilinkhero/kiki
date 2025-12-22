@@ -188,6 +188,27 @@ class AlfaPaymentService
         $requestHash = $this->generateRequestHash($params);
         $params['RequestHash'] = $requestHash;
 
+        // Log payment request details
+        $logFile = storage_path('logs/paymentgateway.log');
+        $queryParts = [];
+        foreach ($params as $key => $value) {
+            if ($key !== 'RequestHash') {
+                $queryParts[] = $key . '=' . $value;
+            }
+        }
+        $queryString = implode('&', $queryParts);
+
+        $paymentLog = [
+            'action' => 'PAYMENT_REQUEST_PREPARATION',
+            'timestamp' => now()->toDateTimeString(),
+            'payment_method' => $paymentMethod,
+            'query_string_to_encrypt' => $queryString,
+            'generated_hash' => $requestHash,
+            'params' => $params,
+            'url' => $this->urls['payment'],
+        ];
+        file_put_contents($logFile, json_encode($paymentLog, JSON_PRETTY_PRINT) . "\n\n", FILE_APPEND);
+
         // Log request
         $this->logRequest('payment', $this->urls['payment'], $params, $transactionReferenceNumber);
 
