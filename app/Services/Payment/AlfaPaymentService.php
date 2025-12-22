@@ -49,9 +49,12 @@ class AlfaPaymentService
             'handshake' => $environment === 'production'
                 ? 'https://payments.bankalfalah.com/HS/HS/HS'
                 : 'https://sandbox.bankalfalah.com/HS/HS/HS',
-            'transaction' => $environment === 'production'
+            'payment' => $environment === 'production'
                 ? 'https://payments.bankalfalah.com/SSO/SSO/SSO'
                 : 'https://sandbox.bankalfalah.com/SSO/SSO/SSO',
+            'inquiry' => $environment === 'production'
+                ? 'https://payments.bankalfalah.com/HS/api/IPN/OrderStatus'
+                : 'https://sandbox.bankalfalah.com/HS/api/IPN/OrderStatus',
         ];
     }
 
