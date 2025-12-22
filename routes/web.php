@@ -76,6 +76,37 @@ Route::get('/payment/apg/test', function () {
     return view('payment.apg.test');
 })->name('payment.apg.test');
 
+// APG Debug Console (for development/testing)
+Route::get('/payment/apg/debug', function () {
+    return view('payment.apg.debug');
+})->name('payment.apg.debug');
+
+Route::get('/payment/apg/debug/log', function () {
+    $logFile = storage_path('logs/paymentgateway.log');
+
+    if (!file_exists($logFile)) {
+        return response()->json(['logs' => []]);
+    }
+
+    $content = file_get_contents($logFile);
+    $entries = explode("\n\n", trim($content));
+
+    $logs = array_map(function ($entry) {
+        $decoded = json_decode($entry, true);
+        return $decoded ?: ['raw' => $entry];
+    }, array_filter($entries));
+
+    return response()->json(['logs' => $logs]);
+})->name('payment.apg.debug.log');
+
+Route::post('/payment/apg/debug/clear', function () {
+    $logFile = storage_path('logs/paymentgateway.log');
+    if (file_exists($logFile)) {
+        file_put_contents($logFile, '');
+    }
+    return response()->json(['success' => true]);
+})->name('payment.apg.debug.clear');
+
 Route::get('/payment/success/{transaction}', [App\Http\Controllers\Payment\ApgPaymentController::class, 'success'])
     ->name('payment.success')->middleware('auth');
 Route::get('/payment/failed/{transaction}', [App\Http\Controllers\Payment\ApgPaymentController::class, 'failed'])

@@ -27,6 +27,18 @@ class ApgPaymentController extends Controller
      */
     public function initiatePayment(Request $request)
     {
+        // Log to dedicated file
+        $logFile = storage_path('logs/paymentgateway.log');
+        $logData = [
+            'timestamp' => now()->toDateTimeString(),
+            'action' => 'INITIATE_PAYMENT',
+            'request_data' => $request->all(),
+            'user_id' => Auth::id(),
+            'ip' => $request->ip(),
+        ];
+
+        file_put_contents($logFile, json_encode($logData, JSON_PRETTY_PRINT) . "\n\n", FILE_APPEND);
+
         $request->validate([
             'amount' => 'required|numeric|min:1',
             'transaction_type' => 'required|string',
@@ -37,19 +49,26 @@ class ApgPaymentController extends Controller
             // Generate unique transaction reference number
             $transactionRef = 'TXN' . time() . Str::random(6);
 
+            file_put_contents($logFile, "Generated Transaction Ref: $transactionRef\n\n", FILE_APPEND);
+
             // Create transaction record
             $transaction = $this->apgService->createTransaction([
                 'transaction_reference_number' => $transactionRef,
                 'user_id' => Auth::id(),
-                'tenant_id' => tenant_id() ?? null,
+                'tenant_id' => null, // Set to null for testing
                 'amount' => $request->amount,
                 'transaction_type' => $request->transaction_type,
                 'related_id' => $request->related_id,
                 'request_data' => $request->all(),
             ]);
 
+            file_put_contents($logFile, "Transaction Created: " . json_encode($transaction->toArray(), JSON_PRETTY_PRINT) . "\n\n", FILE_APPEND);
+
             // Step 1: Initiate handshake
+            file_put_contents($logFile, "Calling APG Handshake...\n", FILE_APPEND);
             $handshakeResponse = $this->apgService->initiateHandshake($transactionRef);
+
+            file_put_contents($logFile, "Handshake Response: " . json_encode($handshakeResponse, JSON_PRETTY_PRINT) . "\n\n", FILE_APPEND);
 
             if (isset($handshakeResponse['success']) && $handshakeResponse['success'] === 'true') {
                 // Store auth token
@@ -58,6 +77,8 @@ class ApgPaymentController extends Controller
                     'status' => 'processing',
                 ]);
 
+                file_put_contents($logFile, "SUCCESS: Auth token stored, redirecting to handshake view\n\n", FILE_APPEND);
+
                 // Return view with form to auto-submit to callback
                 return view('payment.apg.handshake', [
                     'authToken' => $handshakeResponse['AuthToken'],
@@ -65,17 +86,28 @@ class ApgPaymentController extends Controller
                     'transaction' => $transaction,
                 ]);
             } else {
+                $errorMsg = $handshakeResponse['ErrorMessage'] ?? 'Handshake failed';
+                file_put_contents($logFile, "ERROR: Handshake failed - $errorMsg\n\n", FILE_APPEND);
+
                 $transaction->update([
                     'status' => 'failed',
-                    'error_message' => $handshakeResponse['ErrorMessage'] ?? 'Handshake failed',
+                    'error_message' => $errorMsg,
                 ]);
 
-                return redirect()->back()->with('error', 'Payment initiation failed. Please try again.');
+                return redirect()->back()->with('error', 'Payment initiation failed: ' . $errorMsg);
             }
 
         } catch (\Exception $e) {
+            $errorData = [
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ];
+            file_put_contents($logFile, "EXCEPTION: " . json_encode($errorData, JSON_PRETTY_PRINT) . "\n\n", FILE_APPEND);
+
             Log::error('APG Payment Initiation Error: ' . $e->getMessage());
-            return redirect()->back()->with('error', 'An error occurred. Please try again.');
+            return redirect()->back()->with('error', 'An error occurred: ' . $e->getMessage());
         }
     }
 
