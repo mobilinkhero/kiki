@@ -140,15 +140,19 @@
                                     <ul class="space-y-2">
                                         <li class="flex items-center text-sm text-gray-600 dark:text-gray-400">
                                             <x-heroicon-o-check-circle class="w-4 h-4 text-primary-500 mr-2" />
-                                            Alfa Wallet
-                                        </li>
-                                        <li class="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                                            <x-heroicon-o-check-circle class="w-4 h-4 text-primary-500 mr-2" />
-                                            Alfalah Bank Account
-                                        </li>
-                                        <li class="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                                            <x-heroicon-o-check-circle class="w-4 h-4 text-primary-500 mr-2" />
                                             Credit/Debit Cards (Visa, MasterCard)
+                                        </li>
+                                        <li class="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                                            <x-heroicon-o-check-circle class="w-4 h-4 text-primary-500 mr-2" />
+                                            JazzCash / Easypaisa
+                                        </li>
+                                        <li class="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                                            <x-heroicon-o-check-circle class="w-4 h-4 text-primary-500 mr-2" />
+                                            Local Bank Transfer (Direct)
+                                        </li>
+                                        <li class="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                                            <x-heroicon-o-check-circle class="w-4 h-4 text-primary-500 mr-2" />
+                                            Alfa Wallet & Bank Account
                                         </li>
                                     </ul>
                                 </div>

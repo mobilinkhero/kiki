@@ -49,12 +49,12 @@ class ApgPaymentGateway implements PaymentGatewayInterface
 
     public function getDescription(): string
     {
-        return 'Bank Alfalah payment gateway - Alfa Wallet, Bank Account, and Credit/Debit Cards';
+        return 'Bank Alfalah payment gateway - Cards, JazzCash, Alfa Wallet, Bank Account, and Local Bank Transfer';
     }
 
     public function getShortDescription(): string
     {
-        return 'Bank Alfalah';
+        return 'Cards, JazzCash, Bank Transfer';
     }
 
     public function isActive(): bool

@@ -158,7 +158,22 @@
                                         </h3>
                                     </x-slot:header>
                                     <x-slot:content>
-                                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                                            <div class="flex items-center space-x-3">
+                                                <x-heroicon-o-check-circle class="w-5 h-5 text-green-500" />
+                                                <span class="text-sm text-gray-600 dark:text-gray-400">
+                                                    Credit/Debit Cards</span>
+                                            </div>
+                                            <div class="flex items-center space-x-3">
+                                                <x-heroicon-o-check-circle class="w-5 h-5 text-green-500" />
+                                                <span class="text-sm text-gray-600 dark:text-gray-400">
+                                                    JazzCash</span>
+                                            </div>
+                                            <div class="flex items-center space-x-3">
+                                                <x-heroicon-o-check-circle class="w-5 h-5 text-green-500" />
+                                                <span class="text-sm text-gray-600 dark:text-gray-400">
+                                                    Bank Transfer</span>
+                                            </div>
                                             <div class="flex items-center space-x-3">
                                                 <x-heroicon-o-check-circle class="w-5 h-5 text-green-500" />
                                                 <span class="text-sm text-gray-600 dark:text-gray-400">
@@ -167,12 +182,7 @@
                                             <div class="flex items-center space-x-3">
                                                 <x-heroicon-o-check-circle class="w-5 h-5 text-green-500" />
                                                 <span class="text-sm text-gray-600 dark:text-gray-400">
-                                                    Alfalah Bank Account</span>
-                                            </div>
-                                            <div class="flex items-center space-x-3">
-                                                <x-heroicon-o-check-circle class="w-5 h-5 text-green-500" />
-                                                <span class="text-sm text-gray-600 dark:text-gray-400">
-                                                    Credit/Debit Cards</span>
+                                                    Bank Account</span>
                                             </div>
                                         </div>
 
