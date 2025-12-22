@@ -182,10 +182,10 @@ class AlfaPaymentService
             'TransactionAmount' => $amount,
         ];
 
-        // Add TransactionTypeId only if payment method is specified
-        if ($paymentMethod) {
-            $params['TransactionTypeId'] = $paymentMethod;
-        }
+        // Always include TransactionTypeId
+        // Empty value = show all payment methods
+        // 1 = Alfa Wallet, 2 = Bank Account, 3 = Credit/Debit Card
+        $params['TransactionTypeId'] = $paymentMethod ?? '';
 
         // Generate hash from all parameters (same as handshake)
         $requestHash = $this->generateRequestHash($params);
