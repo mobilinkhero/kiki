@@ -23,7 +23,7 @@
         <div class="bg-gray-50 dark:bg-gray-900 mt-6">
             <div class="max-w-7xl mx-auto">
                 <form method="POST" action="{{ route('admin.settings.payment.apg.update') }}" x-data="{
-                    apgEnabled: {{ $settings->apg_enabled ? 'true' : 'false' }}
+                    apgEnabled: {{ data_get($settings, 'apg_enabled') ? 'true' : 'false' }}
                 }">
                     @csrf
                     <x-card>
@@ -140,8 +140,9 @@
                                                 <select id="apg_environment" name="apg_environment"
                                                     x-bind:disabled="!apgEnabled"
                                                     class="mt-2 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg shadow-sm focus:border-primary-500 focus:ring-primary-500">
-                                                    <option value="sandbox" {{ $settings->apg_environment === 'sandbox' ? 'selected' : '' }}>Sandbox (Testing)</option>
-                                                    <option value="production" {{ $settings->apg_environment === 'production' ? 'selected' : '' }}>
+                                                    <option value="sandbox" {{ data_get($settings, 'apg_environment') === 'sandbox' ? 'selected' : '' }}>Sandbox
+                                                        (Testing)</option>
+                                                    <option value="production" {{ data_get($settings, 'apg_environment') === 'production' ? 'selected' : '' }}>
                                                         Production (Live)</option>
                                                 </select>
                                                 <x-input-error for="apg_environment" class="mt-2" />
