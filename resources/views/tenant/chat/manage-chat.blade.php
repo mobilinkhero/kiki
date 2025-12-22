@@ -75,7 +75,7 @@
                                         </a>
 
                                         <!-- Step 2 -->
-                                        <a href="https://docs.corbitaltech.dev/products/whatsmark-saas/tenant" target="_blank"
+                                        <a href="https://docs.chatvoo.com" target="_blank"
                                             class="block group relative overflow-hidden rounded-lg transition-all duration-300 bg-gray-50 hover:bg-info-50 dark:bg-gray-700/50 dark:hover:bg-gray-700">
 
                                             <div
