@@ -169,8 +169,6 @@
                             <form id="apgForm" action="{{ $returnUrl }}" method="POST" class="mt-6">
                                 @csrf
                                 <input type="hidden" name="AuthToken" value="{{ $authToken }}">
-                                <input type="hidden" name="RequestHash"
-                                    value="{{ $transaction->request_data['request_hash'] ?? '' }}">
 
                                 <div class="flex items-center justify-between">
                                     <a href="{{ url()->previous() }}"
