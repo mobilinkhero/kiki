@@ -158,7 +158,7 @@ class AlfaPaymentService
     /**
      * Process payment (Step 2)
      */
-    public function processPayment($authToken, $amount, $transactionReferenceNumber, $returnUrl = null)
+    public function processPayment($authToken, $amount, $transactionReferenceNumber, $returnUrl = null, $paymentMethod = null)
     {
         $credentials = $this->config['credentials'];
         $returnUrl = $returnUrl ?? $this->config['return_url'];
@@ -175,10 +175,14 @@ class AlfaPaymentService
             'MerchantHash' => $credentials['merchant_hash'],
             'MerchantUsername' => $credentials['merchant_username'],
             'MerchantPassword' => $credentials['merchant_password'],
-            'TransactionTypeId' => $this->config['transaction_type_id'],
             'TransactionReferenceNumber' => $transactionReferenceNumber,
             'TransactionAmount' => $amount,
         ];
+
+        // Add TransactionTypeId only if payment method is specified
+        if ($paymentMethod) {
+            $params['TransactionTypeId'] = $paymentMethod;
+        }
 
         // Generate hash from all parameters (same as handshake)
         $requestHash = $this->generateRequestHash($params);

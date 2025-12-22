@@ -143,6 +143,40 @@
         .warning-box strong {
             color: #856404;
         }
+
+        .payment-method {
+            margin: 10px 0;
+        }
+
+        .payment-method label {
+            display: block;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 5px;
+            font-size: 13px;
+        }
+
+        .payment-method select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+
+        .payment-method select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .method-info {
+            font-size: 11px;
+            color: #888;
+            margin-top: 5px;
+        }
     </style>
 </head>
 
@@ -167,6 +201,18 @@
                     <input type="hidden" name="transaction_type" value="test">
                     <div class="amount-label">Small Test</div>
                     <div class="amount-value">PKR 10</div>
+
+                    <div class="payment-method">
+                        <label for="payment_method_1">Payment Method:</label>
+                        <select name="payment_method" id="payment_method_1">
+                            <option value="">All Payment Methods</option>
+                            <option value="1">💰 Alfa Wallet</option>
+                            <option value="2">🏦 Alfalah Bank Account</option>
+                            <option value="3" selected>💳 Credit/Debit Card</option>
+                        </select>
+                        <div class="method-info">Select how you want to pay</div>
+                    </div>
+
                     <button type="submit" class="btn">Pay PKR 10</button>
                 </form>
             </div>
@@ -179,6 +225,18 @@
                     <input type="hidden" name="transaction_type" value="test">
                     <div class="amount-label">Medium Test</div>
                     <div class="amount-value">PKR 100</div>
+
+                    <div class="payment-method">
+                        <label for="payment_method_2">Payment Method:</label>
+                        <select name="payment_method" id="payment_method_2">
+                            <option value="">All Payment Methods</option>
+                            <option value="1">💰 Alfa Wallet</option>
+                            <option value="2">🏦 Alfalah Bank Account</option>
+                            <option value="3" selected>💳 Credit/Debit Card</option>
+                        </select>
+                        <div class="method-info">Select how you want to pay</div>
+                    </div>
+
                     <button type="submit" class="btn">Pay PKR 100</button>
                 </form>
             </div>
@@ -192,6 +250,18 @@
                     <input type="hidden" name="related_id" value="1">
                     <div class="amount-label">Subscription Test</div>
                     <div class="amount-value">PKR 1,000</div>
+
+                    <div class="payment-method">
+                        <label for="payment_method_3">Payment Method:</label>
+                        <select name="payment_method" id="payment_method_3">
+                            <option value="">All Payment Methods</option>
+                            <option value="1">💰 Alfa Wallet</option>
+                            <option value="2">🏦 Alfalah Bank Account</option>
+                            <option value="3" selected>💳 Credit/Debit Card</option>
+                        </select>
+                        <div class="method-info">Select how you want to pay</div>
+                    </div>
+
                     <button type="submit" class="btn">Pay PKR 1,000</button>
                 </form>
             </div>

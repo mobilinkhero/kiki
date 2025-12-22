@@ -43,6 +43,7 @@ class ApgPaymentController extends Controller
             'amount' => 'required|numeric|min:1',
             'transaction_type' => 'required|string',
             'related_id' => 'nullable|integer',
+            'payment_method' => 'nullable|in:1,2,3', // 1=Alfa Wallet, 2=Bank Account, 3=Card
         ]);
 
         try {
@@ -133,10 +134,14 @@ class ApgPaymentController extends Controller
         }
 
         // Step 2: Prepare payment request
+        $paymentMethod = $transaction->request_data['payment_method'] ?? null;
+
         $paymentData = $this->apgService->processPayment(
             $authToken,
             $transaction->amount,
-            $transaction->transaction_reference_number
+            $transaction->transaction_reference_number,
+            null, // return URL (uses default)
+            $paymentMethod
         );
 
         // Return view with auto-submit form to APG payment page
