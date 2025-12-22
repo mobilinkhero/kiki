@@ -40,6 +40,16 @@ Route::prefix('webhooks')->group(function () {
     Route::get('/whatsapp/{provider}/verify', [WebhookController::class, 'verifyWebhook']);
 });
 
+// APG Payment Gateway Routes (unauthenticated - for callbacks/webhooks)
+Route::prefix('payment/alfa')->name('payment.alfa.')->group(function () {
+    Route::match(['get', 'post'], '/callback', [\App\Http\Controllers\Payment\ApgPaymentController::class, 'handleCallback'])
+        ->name('callback');
+    Route::match(['get', 'post'], '/return', [\App\Http\Controllers\Payment\ApgPaymentController::class, 'handleReturn'])
+        ->name('return');
+    Route::match(['get', 'post'], '/ipn', [\App\Http\Controllers\Payment\ApgPaymentController::class, 'handleIpn'])
+        ->name('ipn');
+});
+
 // Protected API routes
 Route::middleware(['auth:sanctum'])->group(function () {
 
