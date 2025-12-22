@@ -192,8 +192,25 @@ class ApgPaymentController extends Controller
             // Inquire transaction status from APG
             $statusResponse = $this->apgService->inquireTransaction($orderId);
 
+            // Detailed logging of inquiry response
+            file_put_contents($logFile, json_encode([
+                'timestamp' => now()->toDateTimeString(),
+                'action' => 'APG_INQUIRY_RESPONSE',
+                'order_id' => $orderId,
+                'response' => $statusResponse,
+            ], JSON_PRETTY_PRINT) . "\n\n", FILE_APPEND);
+
             // Update APG transaction
             $apgTransaction = $this->apgService->updateTransaction($orderId, $statusResponse);
+
+            // Log updated transaction state
+            file_put_contents($logFile, json_encode([
+                'timestamp' => now()->toDateTimeString(),
+                'action' => 'APG_TRANSACTION_UPDATED',
+                'order_id' => $orderId,
+                'status' => $apgTransaction->status,
+                'is_paid' => $apgTransaction->isPaid(),
+            ], JSON_PRETTY_PRINT) . "\n\n", FILE_APPEND);
 
             // Process invoice payment based on APG transaction status
             if ($apgTransaction->isPaid()) {

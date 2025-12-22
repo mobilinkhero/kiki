@@ -379,6 +379,16 @@ class AlfaPaymentService
             'ip_address' => request()->ip(),
             'user_agent' => request()->userAgent(),
         ]);
+
+        // Also log to file for immediate visibility
+        $logFile = storage_path('logs/paymentgateway.log');
+        file_put_contents($logFile, json_encode([
+            'timestamp' => now()->toDateTimeString(),
+            'action' => 'APG_REQUEST_' . strtoupper($action),
+            'url' => $url,
+            'payload' => $payload,
+            'transaction_ref' => $transactionRef,
+        ], JSON_PRETTY_PRINT) . "\n\n", FILE_APPEND);
     }
 
     /**
@@ -402,6 +412,16 @@ class AlfaPaymentService
                 'is_successful' => isset($response['success']) && $response['success'] === 'true',
             ]);
         }
+
+        // Also log to file for immediate visibility
+        $logFile = storage_path('logs/paymentgateway.log');
+        file_put_contents($logFile, json_encode([
+            'timestamp' => now()->toDateTimeString(),
+            'action' => 'APG_RESPONSE_' . strtoupper($action),
+            'status_code' => $statusCode,
+            'response' => $response,
+            'transaction_ref' => $transactionRef,
+        ], JSON_PRETTY_PRINT) . "\n\n", FILE_APPEND);
     }
 
     /**
@@ -424,6 +444,15 @@ class AlfaPaymentService
                 'error_message' => $error,
             ]);
         }
+
+        // Also log to file for immediate visibility
+        $logFile = storage_path('logs/paymentgateway.log');
+        file_put_contents($logFile, json_encode([
+            'timestamp' => now()->toDateTimeString(),
+            'action' => 'APG_ERROR_' . strtoupper($action),
+            'error' => $error,
+            'transaction_ref' => $transactionRef,
+        ], JSON_PRETTY_PRINT) . "\n\n", FILE_APPEND);
 
         Log::error("APG {$action} Error: " . $error, [
             'transaction_ref' => $transactionRef
