@@ -163,17 +163,10 @@ class AlfaPaymentService
         $credentials = $this->config['credentials'];
         $returnUrl = $returnUrl ?? $this->config['return_url'];
 
-        // Generate request hash for payment
-        $requestHash = $this->generateHash(
-            $credentials['merchant_id'] .
-            $credentials['store_id'] .
-            $amount .
-            $transactionReferenceNumber
-        );
-
+        // Build all parameters first (without hash)
         $params = [
             'AuthToken' => $authToken,
-            'RequestHash' => $requestHash,
+            'RequestHash' => '', // Will be filled after generation
             'ChannelId' => $this->config['channel_id'],
             'Currency' => $this->config['currency'],
             'ReturnURL' => $returnUrl,
@@ -186,6 +179,10 @@ class AlfaPaymentService
             'TransactionReferenceNumber' => $transactionReferenceNumber,
             'TransactionAmount' => $amount,
         ];
+
+        // Generate hash from all parameters (same as handshake)
+        $requestHash = $this->generateRequestHash($params);
+        $params['RequestHash'] = $requestHash;
 
         // Log request
         $this->logRequest('payment', $this->urls['payment'], $params, $transactionReferenceNumber);
