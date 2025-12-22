@@ -40,6 +40,8 @@ class AlfaPaymentService
             'return_url' => url('/payment/alfa/return'),
             'callback_url' => url('/payment/alfa/callback'),
             'ipn_url' => url('/payment/alfa/ipn'),
+            'log_requests' => true,
+            'timeout' => 30,
         ];
 
         // Set URLs based on environment

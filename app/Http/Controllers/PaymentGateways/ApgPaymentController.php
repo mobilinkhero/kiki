@@ -122,7 +122,7 @@ class ApgPaymentController extends Controller
                     'error_message' => $errorMsg,
                 ]);
 
-                return redirect()->to(tenant_route('tenant.checkout.resume', ['invoice' => $invoice->id]))
+                return redirect()->to(tenant_route('tenant.checkout.resume', ['id' => $invoice->id]))
                     ->with('error', 'Payment initiation failed: ' . $errorMsg);
             }
 
@@ -133,7 +133,7 @@ class ApgPaymentController extends Controller
                 'error' => $e->getMessage(),
             ]);
 
-            return redirect()->to(tenant_route('tenant.checkout.resume', ['invoice' => $invoice->id]))
+            return redirect()->to(tenant_route('tenant.checkout.resume', ['id' => $invoice->id]))
                 ->with('error', 'Payment initiation error: ' . $e->getMessage());
         }
     }
@@ -219,7 +219,7 @@ class ApgPaymentController extends Controller
                     'message' => t('payment_failed'),
                 ]);
 
-                return redirect()->to(tenant_route('tenant.checkout.resume', ['invoice' => $invoice->id]));
+                return redirect()->to(tenant_route('tenant.checkout.resume', ['id' => $invoice->id]));
             }
 
         } catch (\Exception $e) {
