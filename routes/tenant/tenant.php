@@ -233,12 +233,6 @@ Route::middleware(['auth', TenantMiddleware::class, CheckTenantDeleted::class, E
                 Route::match(['get', 'post'], '/ipn', [\App\Http\Controllers\PaymentGateways\ApgPaymentController::class, 'handleIpn'])->name('ipn');
             });
 
-            // Switch Payment Gateway (New)
-            Route::prefix('payment/switch')->name('payment.switch.')->group(function () {
-                Route::get('/success', [\App\Http\Controllers\PaymentGateways\SwitchPaymentController::class, 'success'])->name('success');
-                Route::get('/failed', [\App\Http\Controllers\PaymentGateways\SwitchPaymentController::class, 'failed'])->name('failed');
-            });
-
             // manage campaign
             Route::get('/create', [ManageCampaigns::class, 'create'])->name('create');
             Route::post('campaign/store', [ManageCampaigns::class, 'store'])->name('store');
