@@ -1,0 +1,312 @@
+<?php
+
+namespace App\Services\Payment;
+
+use App\Models\ApgTransaction;
+use App\Models\ApgPaymentLog;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Exception;
+
+class AlfaPaymentService
+{
+    protected $config;
+    protected $urls;
+
+    public function __construct()
+    {
+        $this->config = config('apg');
+        $environment = $this->config['environment'];
+        $this->urls = $this->config['urls'][$environment];
+    }
+
+    /**
+     * Generate 3DES encrypted hash
+     */
+    public function generateHash($data)
+    {
+        $key1 = $this->config['encryption']['key1'];
+        $key2 = $this->config['encryption']['key2'];
+
+        // Combine keys for 3DES
+        $key = $key1 . $key2;
+
+        // Encrypt using 3DES
+        $encrypted = openssl_encrypt(
+            $data,
+            'des-ede3',
+            $key,
+            OPENSSL_RAW_DATA
+        );
+
+        return base64_encode($encrypted);
+    }
+
+    /**
+     * Generate request hash for handshake
+     */
+    public function generateRequestHash($transactionReferenceNumber)
+    {
+        $credentials = $this->config['credentials'];
+
+        $data = $credentials['merchant_id'] .
+            $credentials['store_id'] .
+            $transactionReferenceNumber;
+
+        return $this->generateHash($data);
+    }
+
+    /**
+     * Initiate handshake (Step 1)
+     */
+    public function initiateHandshake($transactionReferenceNumber, $returnUrl = null)
+    {
+        $credentials = $this->config['credentials'];
+        $returnUrl = $returnUrl ?? $this->config['callback_url'];
+
+        $requestHash = $this->generateRequestHash($transactionReferenceNumber);
+
+        $params = [
+            'HS_RequestHash' => $requestHash,
+            'HS_IsRedirectionRequest' => '0',
+            'HS_ChannelId' => $this->config['channel_id'],
+            'HS_ReturnURL' => $returnUrl,
+            'HS_MerchantId' => $credentials['merchant_id'],
+            'HS_StoreId' => $credentials['store_id'],
+            'HS_MerchantHash' => $credentials['merchant_hash'],
+            'HS_MerchantUsername' => $credentials['merchant_username'],
+            'HS_MerchantPassword' => $credentials['merchant_password'],
+            'HS_TransactionReferenceNumber' => $transactionReferenceNumber,
+        ];
+
+        // Log request
+        $this->logRequest('handshake', $this->urls['handshake'], $params);
+
+        try {
+            $response = Http::timeout($this->config['timeout'])
+                ->asForm()
+                ->post($this->urls['handshake'], $params);
+
+            $result = $response->json();
+
+            // Log response
+            $this->logResponse('handshake', $result, $response->status(), $transactionReferenceNumber);
+
+            return $result;
+
+        } catch (Exception $e) {
+            $this->logError('handshake', $e->getMessage(), $transactionReferenceNumber);
+            throw $e;
+        }
+    }
+
+    /**
+     * Process payment (Step 2)
+     */
+    public function processPayment($authToken, $amount, $transactionReferenceNumber, $returnUrl = null)
+    {
+        $credentials = $this->config['credentials'];
+        $returnUrl = $returnUrl ?? $this->config['return_url'];
+
+        // Generate request hash for payment
+        $requestHash = $this->generateHash(
+            $credentials['merchant_id'] .
+            $credentials['store_id'] .
+            $amount .
+            $transactionReferenceNumber
+        );
+
+        $params = [
+            'AuthToken' => $authToken,
+            'RequestHash' => $requestHash,
+            'ChannelId' => $this->config['channel_id'],
+            'Currency' => $this->config['currency'],
+            'ReturnURL' => $returnUrl,
+            'MerchantId' => $credentials['merchant_id'],
+            'StoreId' => $credentials['store_id'],
+            'MerchantHash' => $credentials['merchant_hash'],
+            'MerchantUsername' => $credentials['merchant_username'],
+            'MerchantPassword' => $credentials['merchant_password'],
+            'TransactionTypeId' => $this->config['transaction_type_id'],
+            'TransactionReferenceNumber' => $transactionReferenceNumber,
+            'TransactionAmount' => $amount,
+        ];
+
+        // Log request
+        $this->logRequest('payment', $this->urls['payment'], $params, $transactionReferenceNumber);
+
+        return [
+            'url' => $this->urls['payment'],
+            'params' => $params
+        ];
+    }
+
+    /**
+     * Inquire transaction status
+     */
+    public function inquireTransaction($transactionReferenceNumber)
+    {
+        $credentials = $this->config['credentials'];
+
+        $url = sprintf(
+            '%s/%s/%s/%s',
+            $this->urls['ipn'],
+            $credentials['merchant_id'],
+            $credentials['store_id'],
+            $transactionReferenceNumber
+        );
+
+        // Log request
+        $this->logRequest('inquiry', $url, [], $transactionReferenceNumber);
+
+        try {
+            $response = Http::timeout($this->config['timeout'])->get($url);
+            $result = $response->json();
+
+            // Log response
+            $this->logResponse('inquiry', $result, $response->status(), $transactionReferenceNumber);
+
+            return $result;
+
+        } catch (Exception $e) {
+            $this->logError('inquiry', $e->getMessage(), $transactionReferenceNumber);
+            throw $e;
+        }
+    }
+
+    /**
+     * Create transaction record
+     */
+    public function createTransaction($data)
+    {
+        return ApgTransaction::create([
+            'transaction_reference_number' => $data['transaction_reference_number'],
+            'user_id' => $data['user_id'] ?? null,
+            'tenant_id' => $data['tenant_id'] ?? null,
+            'amount' => $data['amount'],
+            'currency' => $data['currency'] ?? $this->config['currency'],
+            'transaction_type' => $data['transaction_type'] ?? 'subscription',
+            'related_id' => $data['related_id'] ?? null,
+            'status' => 'pending',
+            'request_data' => $data['request_data'] ?? null,
+        ]);
+    }
+
+    /**
+     * Update transaction with APG response
+     */
+    public function updateTransaction($transactionReferenceNumber, $responseData)
+    {
+        $transaction = ApgTransaction::where('transaction_reference_number', $transactionReferenceNumber)->first();
+
+        if (!$transaction) {
+            return null;
+        }
+
+        $updateData = [
+            'response_data' => $responseData,
+            'response_code' => $responseData['ResponseCode'] ?? null,
+            'response_description' => $responseData['Description'] ?? null,
+        ];
+
+        // Update status based on TransactionStatus
+        if (isset($responseData['TransactionStatus'])) {
+            $status = strtolower($responseData['TransactionStatus']);
+            $updateData['status'] = $status === 'paid' ? 'paid' : 'failed';
+
+            if ($status === 'paid') {
+                $updateData['paid_at'] = now();
+            }
+        }
+
+        // Update APG transaction details
+        if (isset($responseData['TransactionId'])) {
+            $updateData['apg_transaction_id'] = $responseData['TransactionId'];
+        }
+
+        if (isset($responseData['AccountNumber'])) {
+            $updateData['account_number'] = $responseData['AccountNumber'];
+        }
+
+        if (isset($responseData['MobileNumber'])) {
+            $updateData['mobile_number'] = $responseData['MobileNumber'];
+        }
+
+        if (isset($responseData['TransactionDateTime'])) {
+            $updateData['transaction_datetime'] = $responseData['TransactionDateTime'];
+        }
+
+        $transaction->update($updateData);
+
+        return $transaction;
+    }
+
+    /**
+     * Log API request
+     */
+    protected function logRequest($action, $url, $payload, $transactionRef = null)
+    {
+        if (!$this->config['log_requests']) {
+            return;
+        }
+
+        ApgPaymentLog::create([
+            'transaction_reference_number' => $transactionRef,
+            'action' => $action,
+            'method' => 'POST',
+            'url' => $url,
+            'request_payload' => $payload,
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+        ]);
+    }
+
+    /**
+     * Log API response
+     */
+    protected function logResponse($action, $response, $statusCode, $transactionRef = null)
+    {
+        if (!$this->config['log_requests']) {
+            return;
+        }
+
+        $log = ApgPaymentLog::where('transaction_reference_number', $transactionRef)
+            ->where('action', $action)
+            ->latest()
+            ->first();
+
+        if ($log) {
+            $log->update([
+                'response_payload' => $response,
+                'response_code' => $statusCode,
+                'is_successful' => isset($response['success']) && $response['success'] === 'true',
+            ]);
+        }
+    }
+
+    /**
+     * Log error
+     */
+    protected function logError($action, $error, $transactionRef = null)
+    {
+        if (!$this->config['log_requests']) {
+            return;
+        }
+
+        $log = ApgPaymentLog::where('transaction_reference_number', $transactionRef)
+            ->where('action', $action)
+            ->latest()
+            ->first();
+
+        if ($log) {
+            $log->update([
+                'is_successful' => false,
+                'error_message' => $error,
+            ]);
+        }
+
+        Log::error("APG {$action} Error: " . $error, [
+            'transaction_ref' => $transactionRef
+        ]);
+    }
+}

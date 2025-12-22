@@ -57,6 +57,25 @@ Route::match(['get', 'post'], 'webhooks/razorpay', [RazorpayController::class, '
 Route::match(['get', 'post'], 'webhooks/paystack', [PaystackController::class, 'webhook'])
     ->name('webhook.paystack');
 
+// APG (Alfa Payment Gateway) Routes
+Route::prefix('payment/apg')->name('payment.apg.')->group(function () {
+    Route::post('/initiate', [App\Http\Controllers\Payment\ApgPaymentController::class, 'initiatePayment'])
+        ->name('initiate')->middleware('auth');
+    Route::get('/callback', [App\Http\Controllers\Payment\ApgPaymentController::class, 'handleCallback'])
+        ->name('callback');
+    Route::get('/return', [App\Http\Controllers\Payment\ApgPaymentController::class, 'handleReturn'])
+        ->name('return');
+    Route::post('/ipn', [App\Http\Controllers\Payment\ApgPaymentController::class, 'handleIpn'])
+        ->name('ipn');
+    Route::get('/status/{transactionRef}', [App\Http\Controllers\Payment\ApgPaymentController::class, 'getStatus'])
+        ->name('status');
+});
+
+Route::get('/payment/success/{transaction}', [App\Http\Controllers\Payment\ApgPaymentController::class, 'success'])
+    ->name('payment.success')->middleware('auth');
+Route::get('/payment/failed/{transaction}', [App\Http\Controllers\Payment\ApgPaymentController::class, 'failed'])
+    ->name('payment.failed')->middleware('auth');
+
 // PayPal routes
 Route::match(['get', 'post'], 'webhooks/paypal', [\App\Http\Controllers\PaymentGateways\PayPalController::class, 'handleWebhook'])
     ->name('webhooks.paypal');
