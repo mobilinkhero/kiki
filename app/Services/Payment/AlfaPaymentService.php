@@ -69,24 +69,9 @@ class AlfaPaymentService
         $credentials = $this->config['credentials'];
         $returnUrl = $returnUrl ?? $this->config['callback_url'];
 
-        $requestHash = $this->generateRequestHash($transactionReferenceNumber);
-
-        // Log hash generation details
-        $hashData = [
-            'action' => 'HASH_GENERATION',
-            'timestamp' => now()->toDateTimeString(),
-            'merchant_id' => $credentials['merchant_id'],
-            'store_id' => $credentials['store_id'],
-            'transaction_ref' => $transactionReferenceNumber,
-            'concatenated_string' => $credentials['merchant_id'] . $credentials['store_id'] . $transactionReferenceNumber,
-            'generated_hash' => $requestHash,
-            'encryption_key1' => $this->config['encryption']['key1'],
-            'encryption_key2' => $this->config['encryption']['key2'],
-        ];
-        file_put_contents($logFile, json_encode($hashData, JSON_PRETTY_PRINT) . "\n\n", FILE_APPEND);
-
+        // Build all parameters first (without hash)
         $params = [
-            'HS_RequestHash' => $requestHash,
+            'HS_RequestHash' => '', // Will be filled after generation
             'HS_IsRedirectionRequest' => '0',
             'HS_ChannelId' => $this->config['channel_id'],
             'HS_ReturnURL' => $returnUrl,
@@ -97,6 +82,29 @@ class AlfaPaymentService
             'HS_MerchantPassword' => $credentials['merchant_password'],
             'HS_TransactionReferenceNumber' => $transactionReferenceNumber,
         ];
+
+        // Generate hash from all parameters
+        $requestHash = $this->generateRequestHash($params);
+        $params['HS_RequestHash'] = $requestHash;
+
+        // Log hash generation details
+        $queryParts = [];
+        foreach ($params as $key => $value) {
+            if ($key !== 'HS_RequestHash') {
+                $queryParts[] = $key . '=' . $value;
+            }
+        }
+        $queryString = implode('&', $queryParts);
+
+        $hashData = [
+            'action' => 'HASH_GENERATION',
+            'timestamp' => now()->toDateTimeString(),
+            'query_string_to_encrypt' => $queryString,
+            'encryption_key' => $this->config['encryption']['key1'],
+            'encryption_iv' => $this->config['encryption']['key2'],
+            'generated_hash' => $requestHash,
+        ];
+        file_put_contents($logFile, json_encode($hashData, JSON_PRETTY_PRINT) . "\n\n", FILE_APPEND);
 
         // Log full request details
         $requestLog = [
