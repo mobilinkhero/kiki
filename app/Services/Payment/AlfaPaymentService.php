@@ -37,9 +37,9 @@ class AlfaPaymentService
             ],
             'channel_id' => '1001',
             'currency' => 'PKR',
-            'return_url' => url('/payment/alfa/return'),
-            'callback_url' => url('/payment/alfa/callback'),
-            'ipn_url' => url('/payment/alfa/ipn'),
+            'return_url' => tenant_route('tenant.payment.apg.return'),
+            'callback_url' => tenant_route('tenant.payment.apg.callback'),
+            'ipn_url' => tenant_route('tenant.payment.apg.return'), // Reuse return for simplicity if direct route not used
             'log_requests' => true,
             'timeout' => 30,
         ];
@@ -52,10 +52,12 @@ class AlfaPaymentService
             'payment' => $environment === 'production'
                 ? 'https://payments.bankalfalah.com/SSO/SSO/SSO'
                 : 'https://sandbox.bankalfalah.com/SSO/SSO/SSO',
-            'inquiry' => $environment === 'production'
+            'ipn' => $environment === 'production'
                 ? 'https://payments.bankalfalah.com/HS/api/IPN/OrderStatus'
                 : 'https://sandbox.bankalfalah.com/HS/api/IPN/OrderStatus',
         ];
+        // Add 'transaction' alias for backward compatibility or other methods if needed
+        $this->urls['transaction'] = $this->urls['payment'];
     }
 
     /**
@@ -105,7 +107,7 @@ class AlfaPaymentService
         $logFile = storage_path('logs/paymentgateway.log');
 
         $credentials = $this->config['credentials'];
-        $returnUrl = $returnUrl ?? $this->config['callback_url'];
+        $returnUrl = $returnUrl ?? $this->config['return_url'];
 
         // Build all parameters first (without hash)
         $params = [

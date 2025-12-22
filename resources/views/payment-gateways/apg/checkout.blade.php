@@ -165,10 +165,11 @@
                                 </div>
                             </div>
 
-                            <!-- Hidden form for APG redirect -->
-                            <form id="apgForm" action="{{ $returnUrl }}" method="POST" class="mt-6">
+                            <!-- Form for APG redirect via internal callback -->
+                            <form id="apgForm" action="{{ tenant_route('tenant.payment.apg.callback') }}" method="POST"
+                                class="mt-6">
                                 @csrf
-                                <input type="hidden" name="AuthToken" value="{{ $authToken }}">
+                                <input type="hidden" name="auth_token" value="{{ $authToken }}">
                                 <input type="hidden" name="RequestHash"
                                     value="{{ $transaction->request_data['request_hash'] ?? '' }}">
 

@@ -241,37 +241,55 @@ class ApgPaymentController extends Controller
      */
     public function handleCallback(Request $request)
     {
-        $authToken = $request->query('auth_token');
+        $authToken = $request->input('auth_token') ?? $request->query('auth_token');
 
         if (!$authToken) {
             return redirect()->to(tenant_route('tenant.dashboard'))
                 ->with('error', 'Invalid payment session.');
         }
 
-        // Find transaction by auth token
-        $transaction = ApgTransaction::where('auth_token', $authToken)->first();
+        // Find transaction by auth token and ensure it belongs to this tenant
+        $transaction = ApgTransaction::where('auth_token', $authToken)
+            ->where('tenant_id', tenant_id())
+            ->first();
 
         if (!$transaction) {
             return redirect()->to(tenant_route('tenant.dashboard'))
                 ->with('error', 'Transaction not found.');
         }
 
-        // Step 2: Prepare payment request
-        $paymentMethod = $transaction->request_data['payment_method'] ?? null;
+        try {
+            // Step 2: Prepare payment request
+            $paymentMethod = $transaction->request_data['payment_method'] ?? null;
 
-        $paymentData = $this->apgService->processPayment(
-            $authToken,
-            $transaction->amount,
-            $transaction->transaction_reference_number,
-            null, // return URL (uses default)
-            $paymentMethod
-        );
+            $paymentData = $this->apgService->processPayment(
+                $authToken,
+                $transaction->amount,
+                $transaction->transaction_reference_number,
+                null, // return URL (uses default)
+                $paymentMethod
+            );
 
-        // Return view with auto-submit form to APG payment page
-        return view('payment.apg.payment', [
-            'paymentUrl' => $paymentData['url'],
-            'params' => $paymentData['params'],
-            'transaction' => $transaction,
-        ]);
+            // Redirect directly to bank if the service provided a URL and params
+            if (isset($paymentData['url']) && !empty($paymentData['url'])) {
+                return view('payment-gateways.apg.payment', [
+                    'paymentUrl' => $paymentData['url'],
+                    'params' => $paymentData['params'],
+                    'transaction' => $transaction,
+                ]);
+            }
+
+            return redirect()->to(tenant_route('tenant.checkout.resume', ['id' => $transaction->related_id]))
+                ->with('error', 'Could not prepare payment information.');
+
+        } catch (\Exception $e) {
+            Log::error('APG callback error', [
+                'error' => $e->getMessage(),
+                'token' => $authToken
+            ]);
+
+            return redirect()->to(tenant_route('tenant.dashboard'))
+                ->with('error', 'Payment redirection error.');
+        }
     }
 }
