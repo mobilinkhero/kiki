@@ -69,9 +69,8 @@ class ApgPaymentGateway implements PaymentGatewayInterface
 
     public function getCheckoutUrl(Invoice $invoice): string
     {
-        // For APG, we need to initiate payment first, so redirect to initiate endpoint
-        return route('tenant.payment.apg.initiate', [
-            'subdomain' => tenant('id'),
+        // Use tenant route for APG checkout
+        return tenant_route('tenant.payment.apg.checkout', [
             'invoice' => $invoice->id
         ]);
     }
