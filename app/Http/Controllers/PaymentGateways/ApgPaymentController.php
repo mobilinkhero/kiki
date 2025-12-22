@@ -36,7 +36,7 @@ class ApgPaymentController extends Controller
      *
      * @param  string  $subdomain
      * @param  mixed  $invoiceId
-     * @return \Illuminate\Http\RedirectResponse|\Illuminate\View\View
+     * @return \Illuminate\Http\Response|\Illuminate\Http\RedirectResponse|\Illuminate\View\View
      */
     public function checkout(Request $request, string $subdomain, $invoiceId)
     {
@@ -58,13 +58,21 @@ class ApgPaymentController extends Controller
             return redirect()->to(tenant_route('tenant.subscription.thank-you', ['invoice' => $invoice->id]));
         }
 
-        // Ensure taxes are applied to the invoice
-        if ($invoice->taxes()->count() === 0) {
-            $invoice->applyTaxes();
-        }
-
         $balance = TenantCreditBalance::getOrCreateBalance(tenant_id(), $invoice->currency_id);
         $remainingCredit = $balance->balance ?? 0;
+        $finalAmount = $invoice->finalPayableAmount($remainingCredit);
+
+        // If coupon or credit makes it free, bypass payment
+        if ($finalAmount <= 0) {
+            $invoice->bypassPayment();
+
+            session()->flash('notification', [
+                'type' => 'success',
+                'message' => t('subscription_activate_message'),
+            ]);
+
+            return redirect()->to(tenant_route('tenant.subscription.thank-you', ['invoice' => $invoice->id]));
+        }
 
         // Log payment initiation
         $logFile = storage_path('logs/paymentgateway.log');
@@ -72,7 +80,7 @@ class ApgPaymentController extends Controller
             'timestamp' => now()->toDateTimeString(),
             'action' => 'APG_CHECKOUT',
             'invoice_id' => $invoice->id,
-            'amount' => $invoice->total,
+            'amount' => $finalAmount,
             'tenant_id' => tenant_id(),
         ], JSON_PRETTY_PRINT) . "\n\n", FILE_APPEND);
 
@@ -85,7 +93,7 @@ class ApgPaymentController extends Controller
                 'transaction_reference_number' => $transactionRef,
                 'user_id' => Auth::id(),
                 'tenant_id' => tenant_id(),
-                'amount' => $invoice->total,
+                'amount' => $finalAmount,
                 'currency' => 'PKR',
                 'transaction_type' => 'subscription',
                 'related_id' => $invoice->id,
@@ -142,7 +150,7 @@ class ApgPaymentController extends Controller
      * Handle return from APG after payment.
      *
      * @param  Request  $request
-     * @return \Illuminate\Http\RedirectResponse
+     * @return \Illuminate\Http\Response|\Illuminate\Http\RedirectResponse
      */
     public function handleReturn(Request $request)
     {
@@ -237,7 +245,7 @@ class ApgPaymentController extends Controller
      * Handle callback from APG (Step 2 - Payment form submission).
      *
      * @param  Request  $request
-     * @return \Illuminate\View\View
+     * @return \Illuminate\Http\Response|\Illuminate\View\View|\Illuminate\Http\RedirectResponse
      */
     public function handleCallback(Request $request)
     {
