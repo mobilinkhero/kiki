@@ -21,22 +21,21 @@ class AlfaPaymentService
     }
 
     /**
-     * Generate 3DES encrypted hash
+     * Generate AES encrypted hash (matching APG's JavaScript implementation)
+     * Uses AES-128-CBC with Key1 as key and Key2 as IV
      */
     public function generateHash($data)
     {
-        $key1 = $this->config['encryption']['key1'];
-        $key2 = $this->config['encryption']['key2'];
+        $key1 = $this->config['encryption']['key1']; // 16 bytes - AES key
+        $key2 = $this->config['encryption']['key2']; // 16 bytes - IV
 
-        // Combine keys for 3DES
-        $key = $key1 . $key2;
-
-        // Encrypt using 3DES
+        // AES-128-CBC encryption (matching CryptoJS.AES.encrypt)
         $encrypted = openssl_encrypt(
             $data,
-            'des-ede3',
-            $key,
-            OPENSSL_RAW_DATA
+            'aes-128-cbc',
+            $key1,
+            OPENSSL_RAW_DATA,
+            $key2
         );
 
         return base64_encode($encrypted);
@@ -44,16 +43,20 @@ class AlfaPaymentService
 
     /**
      * Generate request hash for handshake
+     * Hash is created from all request parameters as query string
      */
-    public function generateRequestHash($transactionReferenceNumber)
+    public function generateRequestHash($params)
     {
-        $credentials = $this->config['credentials'];
+        // Build query string from parameters (excluding the hash itself)
+        $queryParts = [];
+        foreach ($params as $key => $value) {
+            if ($key !== 'HS_RequestHash') {
+                $queryParts[] = $key . '=' . $value;
+            }
+        }
+        $queryString = implode('&', $queryParts);
 
-        $data = $credentials['merchant_id'] .
-            $credentials['store_id'] .
-            $transactionReferenceNumber;
-
-        return $this->generateHash($data);
+        return $this->generateHash($queryString);
     }
 
     /**
