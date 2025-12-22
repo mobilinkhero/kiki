@@ -71,6 +71,11 @@ Route::prefix('payment/apg')->name('payment.apg.')->group(function () {
         ->name('status');
 });
 
+// APG Test Page (can be accessed without auth for testing)
+Route::get('/payment/apg/test', function () {
+    return view('payment.apg.test');
+})->name('payment.apg.test');
+
 Route::get('/payment/success/{transaction}', [App\Http\Controllers\Payment\ApgPaymentController::class, 'success'])
     ->name('payment.success')->middleware('auth');
 Route::get('/payment/failed/{transaction}', [App\Http\Controllers\Payment\ApgPaymentController::class, 'failed'])
