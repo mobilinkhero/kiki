@@ -8,8 +8,8 @@
             <!-- Enhanced Header Section -->
             <x-slot:header>
                 <div class="flex items-center space-x-3">
-                    <div class="w-6 h-6 sm:w-10 sm:h-10 bg-emerald-100 rounded-full flex items-center justify-center">
-                        <x-heroicon-o-credit-card class="w-6 h-6 text-emerald-600" />
+                    <div class="w-6 h-6 sm:w-10 sm:h-10 bg-primary-100 rounded-full flex items-center justify-center">
+                        <x-heroicon-o-credit-card class="w-6 h-6 text-primary-600" />
                     </div>
                     <div>
                         <h2 class="text-xl font-bold text-gray-900 dark:text-gray-300">
@@ -112,9 +112,9 @@
                     <!-- Payment Information Panel -->
                     <div
                         class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 overflow-hidden shadow sm:rounded-lg">
-                        <div class="px-4 bg-emerald-50 py-5 dark:bg-slate-700 sm:px-6">
+                        <div class="px-4 bg-primary-50 py-5 dark:bg-slate-700 sm:px-6">
                             <div class="flex items-center">
-                                <x-heroicon-s-credit-card class="h-6 w-6 text-emerald-600 mr-3" />
+                                <x-heroicon-s-credit-card class="h-6 w-6 text-primary-600 mr-3" />
                                 <h2 class="text-lg font-medium text-gray-900 dark:text-slate-200">
                                     Payment Gateway Information
                                 </h2>
@@ -124,7 +124,7 @@
                             <div class="space-y-4">
                                 <div class="flex items-start">
                                     <div class="flex-shrink-0">
-                                        <x-heroicon-o-information-circle class="h-5 w-5 text-emerald-500" />
+                                        <x-heroicon-o-information-circle class="h-5 w-5 text-primary-500" />
                                     </div>
                                     <div class="ml-3">
                                         <p class="text-sm text-gray-700 dark:text-slate-300">
@@ -134,20 +134,20 @@
                                     </div>
                                 </div>
 
-                                <div class="bg-emerald-50 dark:bg-slate-700/50 rounded-lg p-4">
+                                <div class="bg-primary-50 dark:bg-slate-700/50 rounded-lg p-4">
                                     <h3 class="text-sm font-medium text-gray-900 dark:text-slate-200 mb-2">Supported
                                         Payment Methods:</h3>
                                     <ul class="space-y-2">
                                         <li class="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                                            <x-heroicon-o-check-circle class="w-4 h-4 text-emerald-500 mr-2" />
+                                            <x-heroicon-o-check-circle class="w-4 h-4 text-primary-500 mr-2" />
                                             Alfa Wallet
                                         </li>
                                         <li class="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                                            <x-heroicon-o-check-circle class="w-4 h-4 text-emerald-500 mr-2" />
+                                            <x-heroicon-o-check-circle class="w-4 h-4 text-primary-500 mr-2" />
                                             Alfalah Bank Account
                                         </li>
                                         <li class="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                                            <x-heroicon-o-check-circle class="w-4 h-4 text-emerald-500 mr-2" />
+                                            <x-heroicon-o-check-circle class="w-4 h-4 text-primary-500 mr-2" />
                                             Credit/Debit Cards (Visa, MasterCard)
                                         </li>
                                     </ul>
@@ -180,7 +180,7 @@
                                     </a>
 
                                     <button type="submit"
-                                        class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500">
+                                        class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
                                         {{ t('proceed_to_payment') ?? 'Proceed to Payment' }}
                                         <x-heroicon-o-arrow-right class="w-5 h-5 ml-2" />
                                     </button>
