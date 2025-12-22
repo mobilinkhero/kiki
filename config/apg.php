@@ -46,11 +46,11 @@ return [
 
     'currency' => env('APG_CURRENCY', 'PKR'),
 
-    'return_url' => env('APP_URL') . '/payment/apg/return',
+    'return_url' => env('APG_RETURN_URL', 'https://soft.chatvoo.com/payment/alfa/return'),
 
-    'callback_url' => env('APP_URL') . '/payment/apg/callback',
+    'callback_url' => env('APG_CALLBACK_URL', 'https://soft.chatvoo.com/payment/alfa/callback'),
 
-    'ipn_url' => env('APP_URL') . '/payment/apg/ipn',
+    'ipn_url' => env('APG_IPN_URL', 'https://soft.chatvoo.com/payment/alfa/ipn'),
 
     // Logging
     'log_requests' => env('APG_LOG_REQUESTS', true),
