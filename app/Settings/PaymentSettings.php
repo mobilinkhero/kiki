@@ -56,6 +56,25 @@ class PaymentSettings extends Settings
 
     public string $paystack_secret_key = '';
 
+    // APG (Alfa Payment Gateway) Settings
+    public bool $apg_enabled = false;
+
+    public string $apg_merchant_id = '';
+
+    public string $apg_store_id = '';
+
+    public string $apg_merchant_hash = '';
+
+    public string $apg_merchant_username = '';
+
+    public string $apg_merchant_password = '';
+
+    public string $apg_encryption_key1 = '';
+
+    public string $apg_encryption_key2 = '';
+
+    public string $apg_environment = 'production';
+
     // Tax Settings
     public bool $tax_enabled = false;
 
