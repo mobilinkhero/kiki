@@ -96,6 +96,13 @@ class SubscriptionServiceProvider extends ServiceProvider
                 });
             }
 
+            // Register APG (Alfa Payment Gateway) only if enabled and configured
+            if ($settings->apg_enabled && !empty($settings->apg_merchant_id) && !empty($settings->apg_store_id)) {
+                $manager->register('apg', function () use ($app) {
+                    return $app->make(\App\Services\PaymentGateways\ApgPaymentGateway::class);
+                });
+            }
+
             // Register Offline Payment
             $manager->register('offline', function () use ($app) {
                 return $app->make(OfflinePaymentGateway::class);

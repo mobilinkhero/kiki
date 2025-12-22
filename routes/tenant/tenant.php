@@ -225,6 +225,11 @@ Route::middleware(['auth', TenantMiddleware::class, CheckTenantDeleted::class, E
                 Route::get('/callback', [PaystackPaymentController::class, 'callback'])->name('callback');
             });
 
+            // APG (Alfa Payment Gateway)
+            Route::prefix('payment/apg')->name('payment.apg.')->group(function () {
+                Route::get('/initiate/{invoice}', [\App\Http\Controllers\Payment\ApgPaymentController::class, 'initiatePayment'])->name('initiate');
+            });
+
             // manage campaign
             Route::get('/create', [ManageCampaigns::class, 'create'])->name('create');
             Route::post('campaign/store', [ManageCampaigns::class, 'store'])->name('store');

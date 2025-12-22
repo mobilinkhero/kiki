@@ -20,12 +20,98 @@ class ApgPaymentController extends Controller
     }
 
     /**
-     * Initiate payment process
+     * Initiate payment process for an invoice (used by billing system)
+     * 
+     * @param \App\Models\Invoice\Invoice $invoice
+     * @return \Illuminate\Http\RedirectResponse|\Illuminate\View\View
+     */
+    public function initiatePayment($invoice)
+    {
+        // Resolve invoice if it's an ID
+        if (!$invoice instanceof \App\Models\Invoice\Invoice) {
+            $invoice = \App\Models\Invoice\Invoice::findOrFail($invoice);
+        }
+
+        // Log to dedicated file
+        $logFile = storage_path('logs/paymentgateway.log');
+        $logData = [
+            'timestamp' => now()->toDateTimeString(),
+            'action' => 'INITIATE_PAYMENT_FROM_INVOICE',
+            'invoice_id' => $invoice->id,
+            'amount' => $invoice->total,
+            'user_id' => Auth::id(),
+        ];
+
+        file_put_contents($logFile, json_encode($logData, JSON_PRETTY_PRINT) . "\n\n", FILE_APPEND);
+
+        try {
+            // Generate unique transaction reference number
+            $transactionRef = 'TXN' . time() . Str::random(6);
+
+            // Create transaction record
+            $transaction = ApgTransaction::create([
+                'transaction_reference_number' => $transactionRef,
+                'user_id' => Auth::id(),
+                'tenant_id' => tenant('id'),
+                'amount' => $invoice->total,
+                'currency' => 'PKR',
+                'transaction_type' => 'subscription',
+                'related_id' => $invoice->id,
+                'status' => 'pending',
+                'request_data' => [
+                    'invoice_id' => $invoice->id,
+                    'invoice_number' => $invoice->invoice_number,
+                ],
+            ]);
+
+            file_put_contents($logFile, "Transaction Created: " . json_encode($transaction->toArray(), JSON_PRETTY_PRINT) . "\n\n", FILE_APPEND);
+
+            // Step 1: Initiate handshake
+            file_put_contents($logFile, "Calling APG Handshake...\n", FILE_APPEND);
+            $handshakeResponse = $this->apgService->initiateHandshake($transactionRef);
+
+            file_put_contents($logFile, "Handshake Response: " . json_encode($handshakeResponse, JSON_PRETTY_PRINT) . "\n\n", FILE_APPEND);
+
+            if (isset($handshakeResponse['success']) && $handshakeResponse['success'] === 'true') {
+                // Store auth token
+                $transaction->update([
+                    'auth_token' => $handshakeResponse['AuthToken'],
+                    'status' => 'processing',
+                ]);
+
+                file_put_contents($logFile, "SUCCESS: Auth token stored, redirecting to handshake view\n\n", FILE_APPEND);
+
+                // Return view with form to auto-submit to callback
+                return view('payment.apg.handshake', [
+                    'authToken' => $handshakeResponse['AuthToken'],
+                    'returnUrl' => $handshakeResponse['ReturnURL'],
+                    'transaction' => $transaction,
+                ]);
+            } else {
+                $errorMsg = $handshakeResponse['ErrorMessage'] ?? 'Handshake failed';
+                file_put_contents($logFile, "ERROR: Handshake failed - $errorMsg\n\n", FILE_APPEND);
+
+                $transaction->update([
+                    'status' => 'failed',
+                    'error_message' => $errorMsg,
+                ]);
+
+                return redirect()->back()->with('error', 'Payment initiation failed: ' . $errorMsg);
+            }
+
+        } catch (\Exception $e) {
+            file_put_contents($logFile, "EXCEPTION: " . $e->getMessage() . "\n" . $e->getTraceAsString() . "\n\n", FILE_APPEND);
+            return redirect()->back()->with('error', 'Payment initiation error: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Initiate payment process (legacy method for direct API calls)
      * 
      * @param Request $request
      * @return \Illuminate\Http\RedirectResponse|\Illuminate\View\View
      */
-    public function initiatePayment(Request $request)
+    public function initiatePaymentDirect(Request $request)
     {
         // Log to dedicated file
         $logFile = storage_path('logs/paymentgateway.log');
