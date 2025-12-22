@@ -20,6 +20,8 @@ class CsrfMiddlewareServiceProvider extends ServiceProvider
             '*/payment/apg/return',
             '*/payment/apg/callback',
             '*/payment/apg/ipn',
+            '*/payment/switch/success',
+            '*/payment/switch/failed',
         ]);
 
         $middleware->validateCsrfTokens($csrf_exclusions);
