@@ -181,7 +181,7 @@
 
                                     <button type="submit"
                                         class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500">
-                                        {{ t('proceed_to_payment') ?? 'Proceed to Payment' }}
+                                        {{ t('pay_now') ?? 'Pay Now' }}
                                         <x-heroicon-o-arrow-right class="w-5 h-5 ml-2" />
                                     </button>
                                 </div>
