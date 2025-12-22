@@ -15,9 +15,42 @@ class AlfaPaymentService
 
     public function __construct()
     {
-        $this->config = config('apg');
-        $environment = $this->config['environment'];
-        $this->urls = $this->config['urls'][$environment];
+        // Load settings from database instead of config/env
+        $settings = app(\App\Settings\PaymentSettings::class);
+
+        $environment = $settings->apg_environment ?: 'production';
+
+        // Build config array from database settings
+        $this->config = [
+            'enabled' => $settings->apg_enabled,
+            'environment' => $environment,
+            'credentials' => [
+                'merchant_id' => $settings->apg_merchant_id,
+                'store_id' => $settings->apg_store_id,
+                'merchant_hash' => $settings->apg_merchant_hash,
+                'merchant_username' => $settings->apg_merchant_username,
+                'merchant_password' => $settings->apg_merchant_password,
+            ],
+            'encryption' => [
+                'key1' => $settings->apg_encryption_key1,
+                'key2' => $settings->apg_encryption_key2,
+            ],
+            'channel_id' => '1001',
+            'currency' => 'PKR',
+            'return_url' => url('/payment/alfa/return'),
+            'callback_url' => url('/payment/alfa/callback'),
+            'ipn_url' => url('/payment/alfa/ipn'),
+        ];
+
+        // Set URLs based on environment
+        $this->urls = [
+            'handshake' => $environment === 'production'
+                ? 'https://payments.bankalfalah.com/HS/HS/HS'
+                : 'https://sandbox.bankalfalah.com/HS/HS/HS',
+            'transaction' => $environment === 'production'
+                ? 'https://payments.bankalfalah.com/SSO/SSO/SSO'
+                : 'https://sandbox.bankalfalah.com/SSO/SSO/SSO',
+        ];
     }
 
     /**
