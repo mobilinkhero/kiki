@@ -163,6 +163,9 @@ class AlfaPaymentService
         $credentials = $this->config['credentials'];
         $returnUrl = $returnUrl ?? $this->config['return_url'];
 
+        // Format amount as integer (APG requires whole numbers)
+        $amount = (string) ((int) $amount);
+
         // Build all parameters first (without hash)
         $params = [
             'AuthToken' => $authToken,
