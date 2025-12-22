@@ -120,6 +120,16 @@ class ApgPaymentController extends Controller
      */
     public function handleCallback(Request $request)
     {
+        // Handle test requests
+        if ($request->has('test')) {
+            return response()->json([
+                'status' => 'TEST MODE',
+                'message' => 'Callback URL is working!',
+                'received_params' => $request->all(),
+                'note' => 'This is a test request. Real payments will process normally.'
+            ], 200);
+        }
+
         $authToken = $request->query('auth_token');
 
         if (!$authToken) {
@@ -183,6 +193,16 @@ class ApgPaymentController extends Controller
             'all_params' => $request->all(),
         ];
         file_put_contents($logFile, json_encode($returnLog, JSON_PRETTY_PRINT) . "\n\n", FILE_APPEND);
+
+        // Handle test requests
+        if ($request->has('test')) {
+            return response()->json([
+                'status' => 'TEST MODE',
+                'message' => 'Return URL is working!',
+                'received_params' => $request->all(),
+                'note' => 'This is a test request. Real payments will process normally.'
+            ], 200);
+        }
 
         if (!$orderId) {
             return redirect()->route('home')->with('error', 'Invalid payment response.');
