@@ -17,6 +17,9 @@ class CsrfMiddlewareServiceProvider extends ServiceProvider
             'webhooks/paystack',
             'webhooks/paypal',
             'api/webhooks',
+            '*/payment/apg/return',
+            '*/payment/apg/callback',
+            '*/payment/apg/ipn',
         ]);
 
         $middleware->validateCsrfTokens($csrf_exclusions);

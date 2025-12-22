@@ -11,6 +11,7 @@ use App\Services\Billing\TransactionResult;
 use App\Services\Payment\AlfaPaymentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
@@ -34,6 +35,7 @@ class ApgPaymentController extends Controller
     /**
      * Show the checkout page for an invoice (initiates APG payment).
      *
+     * @param  Request  $request
      * @param  string  $subdomain
      * @param  mixed  $invoiceId
      * @return \Illuminate\Http\Response|\Illuminate\Http\RedirectResponse|\Illuminate\View\View
@@ -189,6 +191,15 @@ class ApgPaymentController extends Controller
                     ->with('error', 'Invoice not found.');
             }
 
+            // If already paid (processed via IPN), just redirect
+            if ($invoice->isPaid()) {
+                session()->flash('notification', [
+                    'type' => 'success',
+                    'message' => t('payment_completed_successfully'),
+                ]);
+                return redirect()->to(tenant_route('tenant.subscription.thank-you', ['invoice' => $invoice->id]));
+            }
+
             // Inquire transaction status from APG
             $statusResponse = $this->apgService->inquireTransaction($orderId);
 
@@ -326,6 +337,81 @@ class ApgPaymentController extends Controller
 
             return redirect()->to(tenant_route('tenant.dashboard'))
                 ->with('error', 'Payment redirection error.');
+        }
+    }
+
+    /**
+     * Handle IPN (Instant Payment Notification) from APG.
+     * APG calls this with a 'url' parameter which we then GET to find status.
+     *
+     * @param  Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function handleIpn(Request $request)
+    {
+        $targetUrl = $request->input('url');
+
+        Log::info('APG IPN Received', [
+            'url_param' => $targetUrl,
+            'all_params' => $request->all()
+        ]);
+
+        if (!$targetUrl) {
+            return response('No URL provided', 400);
+        }
+
+        try {
+            // Initiate GET call to the provided URL (Bank Alfalah's recommendation)
+            $response = Http::timeout(30)->get($targetUrl);
+            $statusResponse = $response->json();
+
+            // Log details
+            $logFile = storage_path('logs/paymentgateway.log');
+            file_put_contents($logFile, json_encode([
+                'timestamp' => now()->toDateTimeString(),
+                'action' => 'APG_IPN_STATUS_INQUIRY',
+                'url' => $targetUrl,
+                'response' => $statusResponse,
+            ], JSON_PRETTY_PRINT) . "\n\n", FILE_APPEND);
+
+            if ($response->successful() && isset($statusResponse['TransactionReferenceNumber'])) {
+                $orderId = $statusResponse['TransactionReferenceNumber'];
+
+                // Find transaction
+                $apgTransaction = ApgTransaction::where('transaction_reference_number', $orderId)->first();
+
+                if ($apgTransaction && !$apgTransaction->isPaid()) {
+                    // Update transaction
+                    $apgTransaction = $this->apgService->updateTransaction($orderId, $statusResponse);
+
+                    // If it became paid via IPN, process the invoice
+                    if ($apgTransaction->isPaid()) {
+                        $invoice = Invoice::find($apgTransaction->related_id);
+                        if ($invoice && $invoice->isUnpaid()) {
+                            $invoice->checkout($this->gateway, function ($invoice, $transaction) use ($apgTransaction, $statusResponse) {
+                                $transaction->metadata = [
+                                    'apg_transaction_id' => $apgTransaction->id,
+                                    'apg_reference' => $apgTransaction->transaction_reference_number,
+                                    'apg_response' => $statusResponse,
+                                    'processed_via' => 'IPN'
+                                ];
+                                $transaction->save();
+                                event(new TransactionCreated($transaction->id, $invoice->id));
+                                return new TransactionResult(TransactionResult::RESULT_DONE, 'Payment completed via IPN');
+                            });
+                        }
+                    }
+                }
+            }
+
+            return response('OK', 200);
+
+        } catch (\Exception $e) {
+            Log::error('APG IPN error', [
+                'error' => $e->getMessage(),
+                'url' => $targetUrl
+            ]);
+            return response('Error', 500);
         }
     }
 }

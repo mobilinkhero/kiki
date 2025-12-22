@@ -228,8 +228,9 @@ Route::middleware(['auth', TenantMiddleware::class, CheckTenantDeleted::class, E
             // APG (Alfa Payment Gateway)
             Route::prefix('payment/apg')->name('payment.apg.')->group(function () {
                 Route::get('/checkout/{invoice}', [\App\Http\Controllers\PaymentGateways\ApgPaymentController::class, 'checkout'])->name('checkout');
-                Route::get('/return', [\App\Http\Controllers\PaymentGateways\ApgPaymentController::class, 'handleReturn'])->name('return');
+                Route::match(['get', 'post'], '/return', [\App\Http\Controllers\PaymentGateways\ApgPaymentController::class, 'handleReturn'])->name('return');
                 Route::post('/callback', [\App\Http\Controllers\PaymentGateways\ApgPaymentController::class, 'handleCallback'])->name('callback');
+                Route::match(['get', 'post'], '/ipn', [\App\Http\Controllers\PaymentGateways\ApgPaymentController::class, 'handleIpn'])->name('ipn');
             });
 
             // manage campaign
