@@ -1791,6 +1791,8 @@
     "something_went_wrong": "Something went wrong!",
     "plans_read": "Plans Read",
     "failed_to_fetch_plans": "Failed to fetch plans",
-    "api_management": "API Management"
-   
+    "api_management": "API Management",
+    "redirecting_to_payment_gateway": "Redirecting to Payment Gateway...",
+    "please_do_not_refresh_page": "Please do not refresh the page or click the back button.",
+    "click_if_not_redirected": "Click here if you are not redirected"
 }

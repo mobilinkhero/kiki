@@ -2277,5 +2277,8 @@
     "verification_error": "Verification Error",
     "network_error_refresh": "Network error. Please check your connection and refresh the page.",
     "connection_error": "Connection Error",
-    "payment_verification_timeout": "Payment verification is taking longer than expected. Please refresh the page or contact support."
+    "payment_verification_timeout": "Payment verification is taking longer than expected. Please refresh the page or contact support.",
+    "redirecting_to_payment_gateway": "Redirecting to Payment Gateway...",
+    "please_do_not_refresh_page": "Please do not refresh the page or click the back button.",
+    "click_if_not_redirected": "Click here if you are not redirected"
 }
