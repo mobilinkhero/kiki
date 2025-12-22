@@ -61,10 +61,26 @@ class AlfaPaymentService
      */
     public function initiateHandshake($transactionReferenceNumber, $returnUrl = null)
     {
+        $logFile = storage_path('logs/paymentgateway.log');
+
         $credentials = $this->config['credentials'];
         $returnUrl = $returnUrl ?? $this->config['callback_url'];
 
         $requestHash = $this->generateRequestHash($transactionReferenceNumber);
+
+        // Log hash generation details
+        $hashData = [
+            'action' => 'HASH_GENERATION',
+            'timestamp' => now()->toDateTimeString(),
+            'merchant_id' => $credentials['merchant_id'],
+            'store_id' => $credentials['store_id'],
+            'transaction_ref' => $transactionReferenceNumber,
+            'concatenated_string' => $credentials['merchant_id'] . $credentials['store_id'] . $transactionReferenceNumber,
+            'generated_hash' => $requestHash,
+            'encryption_key1' => $this->config['encryption']['key1'],
+            'encryption_key2' => $this->config['encryption']['key2'],
+        ];
+        file_put_contents($logFile, json_encode($hashData, JSON_PRETTY_PRINT) . "\n\n", FILE_APPEND);
 
         $params = [
             'HS_RequestHash' => $requestHash,
@@ -79,6 +95,16 @@ class AlfaPaymentService
             'HS_TransactionReferenceNumber' => $transactionReferenceNumber,
         ];
 
+        // Log full request details
+        $requestLog = [
+            'action' => 'APG_HANDSHAKE_REQUEST',
+            'timestamp' => now()->toDateTimeString(),
+            'url' => $this->urls['handshake'],
+            'environment' => $this->config['environment'],
+            'params' => $params,
+        ];
+        file_put_contents($logFile, json_encode($requestLog, JSON_PRETTY_PRINT) . "\n\n", FILE_APPEND);
+
         // Log request
         $this->logRequest('handshake', $this->urls['handshake'], $params);
 
@@ -89,12 +115,30 @@ class AlfaPaymentService
 
             $result = $response->json();
 
+            // Log full response
+            $responseLog = [
+                'action' => 'APG_HANDSHAKE_RESPONSE',
+                'timestamp' => now()->toDateTimeString(),
+                'status_code' => $response->status(),
+                'response_body' => $result,
+                'raw_body' => $response->body(),
+            ];
+            file_put_contents($logFile, json_encode($responseLog, JSON_PRETTY_PRINT) . "\n\n", FILE_APPEND);
+
             // Log response
             $this->logResponse('handshake', $result, $response->status(), $transactionReferenceNumber);
 
             return $result;
 
         } catch (Exception $e) {
+            $errorLog = [
+                'action' => 'APG_HANDSHAKE_EXCEPTION',
+                'timestamp' => now()->toDateTimeString(),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ];
+            file_put_contents($logFile, json_encode($errorLog, JSON_PRETTY_PRINT) . "\n\n", FILE_APPEND);
+
             $this->logError('handshake', $e->getMessage(), $transactionReferenceNumber);
             throw $e;
         }

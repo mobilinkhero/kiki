@@ -197,6 +197,13 @@
             </div>
         </div>
 
+        <div style="text-align: center; margin: 20px 0;">
+            <a href="{{ route('payment.apg.debug') }}" target="_blank"
+                style="display: inline-block; padding: 12px 24px; background: #2196f3; color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">
+                🔍 Open Debug Console (Monitor Logs in Real-Time)
+            </a>
+        </div>
+
         <div class="info-box">
             <h4>📋 What happens when you click Pay:</h4>
             <ul>
