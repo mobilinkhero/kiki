@@ -79,6 +79,7 @@ class AddonServiceController extends Controller
             'tenant_id' => tenant_id(),
             'invoice_number' => 'ADDON-' . time() . '-' . strtoupper(substr(md5(uniqid()), 0, 6)),
             'type' => 'addon_service',
+            'title' => $addon->name,
             'currency_id' => 1, // PKR
             'status' => Invoice::STATUS_NEW,
             'description' => "Addon: {$addon->name} - {$addon->credit_amount} credits + {$addon->bonus_amount} bonus",
