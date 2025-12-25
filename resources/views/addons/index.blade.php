@@ -74,7 +74,7 @@
                                             </h3>
                                         </div>
 
-                                        <form action="{{ route('tenant.addons.purchase', $addon->slug) }}" method="POST">
+                                        <form action="{{ route('tenant.addons.purchase', $addon) }}" method="POST">
                                             @csrf
                                             <button type="submit" class="btn btn-primary w-100">
                                                 <i class="fas fa-shopping-cart me-2"></i>Purchase Now
