@@ -64,9 +64,21 @@ class ApgPaymentController extends Controller
         $remainingCredit = $balance->balance ?? 0;
         $finalAmount = $invoice->finalPayableAmount($remainingCredit);
 
-        // If coupon or credit makes it free, bypass payment
+        // If coupon or credit makes it free, process as zero-amount payment
         if ($finalAmount <= 0) {
-            $invoice->bypassPayment();
+            // Process the invoice with zero payment
+            $invoice->checkout($this->gateway, function ($invoice, $transaction) use ($remainingCredit) {
+                $transaction->metadata = [
+                    'payment_method' => 'apg',
+                    'zero_amount_reason' => 'Credits and/or coupons covered full amount',
+                    'credits_used' => $remainingCredit > 0 ? min($remainingCredit, $invoice->total()) : 0,
+                ];
+                $transaction->save();
+
+                event(new TransactionCreated($transaction->id, $invoice->id));
+
+                return new TransactionResult(TransactionResult::RESULT_DONE, 'Payment completed (zero amount)');
+            });
 
             session()->flash('notification', [
                 'type' => 'success',
