@@ -5,7 +5,7 @@ namespace App\Services;
 use App\Models\AddonService;
 use App\Models\AiCredit;
 use App\Models\AiCreditTransaction;
-use App\Models\Invoice;
+use App\Models\Invoice\Invoice;
 use App\Models\UserAddonPurchase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;

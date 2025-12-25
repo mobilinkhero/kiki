@@ -2,7 +2,7 @@
 
 namespace App\Observers;
 
-use App\Models\Invoice;
+use App\Models\Invoice\Invoice;
 use App\Services\AddonActivationService;
 use Illuminate\Support\Facades\Log;
 

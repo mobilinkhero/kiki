@@ -76,7 +76,7 @@ class AppServiceProvider extends ServiceProvider
         $this->configureTimezoneAndDateFormats();
 
         // Register observers
-        \App\Models\Invoice::observe(\App\Observers\InvoiceObserver::class);
+        \App\Models\Invoice\Invoice::observe(\App\Observers\InvoiceObserver::class);
 
         do_action('globally_registration');
     }

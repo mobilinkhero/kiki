@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AddonService;
 use App\Models\AiCredit;
-use App\Models\Invoice;
+use App\Models\Invoice\Invoice;
 use App\Models\UserAddonPurchase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
