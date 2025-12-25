@@ -16,7 +16,9 @@ class AddonServiceController extends Controller
      */
     public function index()
     {
-        $addons = AddonService::active()
+        // Query from central database since addons are global
+        $addons = AddonService::on('mysql')
+            ->active()
             ->orderBy('sort_order')
             ->orderBy('price')
             ->get()
@@ -39,7 +41,8 @@ class AddonServiceController extends Controller
      */
     public function show(string $addon)
     {
-        $addon = AddonService::where('slug', $addon)->firstOrFail();
+        // Query from central database since addons are global
+        $addon = AddonService::on('mysql')->where('slug', $addon)->firstOrFail();
 
         if (!$addon->is_active) {
             abort(404);
