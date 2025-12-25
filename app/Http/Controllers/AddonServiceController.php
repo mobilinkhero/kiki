@@ -76,7 +76,6 @@ class AddonServiceController extends Controller
 
         // Create invoice
         $invoice = Invoice::create([
-            'user_id' => Auth::id(),
             'tenant_id' => tenant_id(),
             'invoice_number' => 'ADDON-' . time() . '-' . strtoupper(substr(md5(uniqid()), 0, 6)),
             'type' => 'addon_service',
@@ -89,6 +88,7 @@ class AddonServiceController extends Controller
                 'addon_type' => $addon->type,
                 'credit_amount' => $addon->credit_amount,
                 'bonus_amount' => $addon->bonus_amount,
+                'user_id' => Auth::id(), // Store in metadata instead
             ],
         ]);
 
