@@ -451,6 +451,11 @@ class Invoice extends BaseModel
             'applied_at' => now()->toISOString(),
         ];
 
+        // Recalculate total: subtotal + tax - discount
+        $subtotal = $this->subTotal();
+        $tax = $this->getTax();
+        $this->total = max(0, $subtotal + $tax - $discountAmount);
+
         $this->save();
     }
 
