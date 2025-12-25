@@ -14,7 +14,8 @@ class AddonServiceController extends Controller
      */
     public function index()
     {
-        $addons = AddonService::orderBy('category')
+        $addons = AddonService::with('purchases')
+            ->orderBy('category')
             ->orderBy('sort_order')
             ->paginate(20);
 
