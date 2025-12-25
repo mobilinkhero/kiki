@@ -106,7 +106,6 @@ class Invoice extends BaseModel
      */
     protected $fillable = [
         'tenant_id',
-        'user_id',
         'subscription_id',
         'type',
         'title',
@@ -117,12 +116,10 @@ class Invoice extends BaseModel
         'coupon_discount',
         'coupon_code',
         'total_tax_amount',
-        'total',
         'fee',
         'invoice_number',
         'due_date',
         'no_payment_required_when_free',
-        'metadata',
     ];
 
     /**
