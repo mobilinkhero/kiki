@@ -1828,13 +1828,9 @@
     "Icon (Font Awesome)": "Icon (Font Awesome)",
     "Badge (Optional)": "Badge (Optional)",
     "Sort Order": "Sort Order",
-    "Active": "Active",
     "Make this addon available for purchase": "Make this addon available for purchase",
-    "Featured": "Featured",
     "Highlight this addon in the marketplace": "Highlight this addon in the marketplace",
     "Update Addon": "Update Addon",
     "What You Get": "What You Get",
-    "Purchases": "Purchases",
-    "activate": "Activate",
-    "deactivate": "Deactivate"
+    "Purchases": "Purchases"
 }
