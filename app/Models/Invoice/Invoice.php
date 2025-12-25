@@ -106,6 +106,7 @@ class Invoice extends BaseModel
      */
     protected $fillable = [
         'tenant_id',
+        'user_id',
         'subscription_id',
         'type',
         'title',
@@ -116,10 +117,12 @@ class Invoice extends BaseModel
         'coupon_discount',
         'coupon_code',
         'total_tax_amount',
+        'total',
         'fee',
         'invoice_number',
         'due_date',
         'no_payment_required_when_free',
+        'metadata',
     ];
 
     /**
@@ -316,7 +319,7 @@ class Invoice extends BaseModel
     public function subTotal(): float
     {
         // Ensure the items relationship is loaded
-        if (! $this->relationLoaded('items')) {
+        if (!$this->relationLoaded('items')) {
             $this->load('items');
         }
 
@@ -471,7 +474,7 @@ class Invoice extends BaseModel
      */
     public function hasCoupon(): bool
     {
-        return ! is_null($this->coupon_id);
+        return !is_null($this->coupon_id);
     }
 
     /**
@@ -545,7 +548,7 @@ class Invoice extends BaseModel
      */
     public function getCouponDiscountAfterCredit(float $creditAmount = 0): float
     {
-        if (! $this->hasCoupon()) {
+        if (!$this->hasCoupon()) {
             return 0;
         }
 
@@ -569,7 +572,7 @@ class Invoice extends BaseModel
      */
     public function formatAmount(float $amount): string
     {
-        if (! $this->relationLoaded('currency') || ! $this->currency) {
+        if (!$this->relationLoaded('currency') || !$this->currency) {
             return number_format($amount, 2); // Fallback format
         }
 
@@ -657,7 +660,7 @@ class Invoice extends BaseModel
     public function afterPaymentProcessed(): void
     {
         // Load the subscription relationship if not already loaded
-        if (! $this->relationLoaded('subscription')) {
+        if (!$this->relationLoaded('subscription')) {
             $this->load('subscription');
         }
 
@@ -733,7 +736,7 @@ class Invoice extends BaseModel
         }
 
         // Return true if all transactions are failed (no pending or successful ones)
-        return ! $this->transactions()->where('status', '!=', Transaction::STATUS_FAILED)->exists();
+        return !$this->transactions()->where('status', '!=', Transaction::STATUS_FAILED)->exists();
     }
 
     /**
@@ -815,7 +818,7 @@ class Invoice extends BaseModel
             throw new Exception('Cannot bypass payment for plan upgrades');
         }
 
-        if (! $this->isFree() && ! $this->no_payment_required_when_free) {
+        if (!$this->isFree() && !$this->no_payment_required_when_free) {
             throw new Exception('Cannot bypass payment for non-free invoice');
         }
 
@@ -842,7 +845,7 @@ class Invoice extends BaseModel
      */
     public function hasBillingInformation(): bool
     {
-        return ! empty($this->billing_first_name) && ! empty($this->billing_last_name) && ! empty($this->billing_address) && ! empty($this->billing_city) && ! empty($this->billing_country_id) && ! empty($this->billing_email);
+        return !empty($this->billing_first_name) && !empty($this->billing_last_name) && !empty($this->billing_address) && !empty($this->billing_city) && !empty($this->billing_country_id) && !empty($this->billing_email);
     }
 
     /**
@@ -880,7 +883,7 @@ class Invoice extends BaseModel
         return [
             'billing_first_name' => $this->billing_first_name,
             'billing_last_name' => $this->billing_last_name,
-            'billing_name' => $this->billing_first_name.' '.$this->billing_last_name,
+            'billing_name' => $this->billing_first_name . ' ' . $this->billing_last_name,
             'billing_address' => $this->billing_address,
             'billing_city' => $this->billing_city,
             'billing_state' => $this->billing_state,
@@ -918,7 +921,7 @@ class Invoice extends BaseModel
             $nextNumber = 1;
         }
 
-        $invoiceNumber = $prefix.$year.$month.'-'.str_pad($nextNumber, 6, '0', STR_PAD_LEFT);
+        $invoiceNumber = $prefix . $year . $month . '-' . str_pad($nextNumber, 6, '0', STR_PAD_LEFT);
 
         $this->invoice_number = $invoiceNumber;
         $this->save();
@@ -933,7 +936,7 @@ class Invoice extends BaseModel
     {
         $path = resource_path('views/invoices/pdf.blade.php');
 
-        if (! file_exists($path)) {
+        if (!file_exists($path)) {
             return self::getDefaultTemplate();
         }
 
@@ -1701,9 +1704,9 @@ class Invoice extends BaseModel
                     ? $path
                     : (str($path)->startsWith('storage/')
                         ? public_path($path)
-                        : storage_path('app/public/'.$path));
+                        : storage_path('app/public/' . $path));
 
-                if (! file_exists($resolvedPath)) {
+                if (!file_exists($resolvedPath)) {
                     app_log("Invoice logo not found: {$resolvedPath}", 'warning');
 
                     return null;
@@ -1724,13 +1727,13 @@ class Invoice extends BaseModel
                 default => null
             };
 
-            if (! $mime) {
+            if (!$mime) {
                 app_log("Invalid logo file type: {$extension}", 'warning');
 
                 return null;
             }
 
-            return 'data:'.$mime.';base64,'.base64_encode($data);
+            return 'data:' . $mime . ';base64,' . base64_encode($data);
         } catch (\Exception $e) {
             app_log('Error processing invoice logo', 'error', $e);
 
@@ -1746,19 +1749,19 @@ class Invoice extends BaseModel
             if (file_exists($defaultLogoPath)) {
                 $data = file_get_contents($defaultLogoPath);
 
-                return 'data:image/png;base64,'.base64_encode($data);
+                return 'data:image/png;base64,' . base64_encode($data);
             }
         } catch (\Exception $e) {
             app_log('Error loading default logo', 'error', $e);
         }
 
         // Fallback to a simple text-based SVG if the default logo file is not found
-        return 'data:image/svg+xml;base64,'.base64_encode('
+        return 'data:image/svg+xml;base64,' . base64_encode('
             <svg xmlns="http://www.w3.org/2000/svg" width="200" height="60" viewBox="0 0 200 60">
                 <rect width="200" height="60" fill="#f8f9fa"/>
                 <text x="100" y="35" font-family="Segoe UI, Arial, Helvetica, sans-serif" font-size="16"
                     fill="#495057" text-anchor="middle" dominant-baseline="middle">
-                    '.htmlspecialchars(config('app.name', 'Company Logo')).'
+                    ' . htmlspecialchars(config('app.name', 'Company Logo')) . '
                 </text>
             </svg>
         ');
@@ -1785,13 +1788,13 @@ class Invoice extends BaseModel
      */
     public function savePdf(?string $path = null): string
     {
-        if (! $path) {
-            $path = storage_path('app/invoices/'.$this->invoice_number.'.pdf');
+        if (!$path) {
+            $path = storage_path('app/invoices/' . $this->invoice_number . '.pdf');
         }
 
         // Create directory if not exists
         $directory = dirname($path);
-        if (! file_exists($directory)) {
+        if (!file_exists($directory)) {
             mkdir($directory, 0755, true);
         }
 
@@ -1807,7 +1810,7 @@ class Invoice extends BaseModel
      */
     public function getCurrencyCode(): string
     {
-        if (! $this->relationLoaded('currency') || ! $this->currency) {
+        if (!$this->relationLoaded('currency') || !$this->currency) {
             return 'USD'; // Default fallback
         }
 
