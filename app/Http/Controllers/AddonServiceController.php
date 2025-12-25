@@ -67,7 +67,8 @@ class AddonServiceController extends Controller
      */
     public function purchase(Request $request, string $addon)
     {
-        $addon = AddonService::where('slug', $addon)->firstOrFail();
+        // Query from central database since addons are global
+        $addon = AddonService::on('mysql')->where('slug', $addon)->firstOrFail();
 
         if (!$addon->is_active) {
             return redirect()->back()->with('error', 'This addon is not available.');
