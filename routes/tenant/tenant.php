@@ -236,9 +236,9 @@ Route::middleware(['auth', TenantMiddleware::class, CheckTenantDeleted::class, E
             // Addon Services (AI Credits, etc.)
             Route::prefix('addons')->name('addons.')->group(function () {
                 Route::get('/', [\App\Http\Controllers\AddonServiceController::class, 'index'])->name('index');
+                Route::get('/my/purchases', [\App\Http\Controllers\AddonServiceController::class, 'myPurchases'])->name('my-purchases');
                 Route::get('/{addon}', [\App\Http\Controllers\AddonServiceController::class, 'show'])->name('show');
                 Route::post('/{addon}/purchase', [\App\Http\Controllers\AddonServiceController::class, 'purchase'])->name('purchase');
-                Route::get('/my/purchases', [\App\Http\Controllers\AddonServiceController::class, 'myPurchases'])->name('my-purchases');
             });
 
             // manage campaign
