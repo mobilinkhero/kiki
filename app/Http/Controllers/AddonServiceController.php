@@ -98,9 +98,9 @@ class AddonServiceController extends Controller
         ]);
 
         // Redirect to payment gateway (APG)
-        return redirect()->route('tenant.payment.apg.checkout', [
+        return redirect()->to(tenant_route('tenant.payment.apg.checkout', [
             'invoice' => $invoice->id
-        ]);
+        ]));
     }
 
     /**
