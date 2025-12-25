@@ -591,7 +591,7 @@ class Invoice extends BaseModel
             return false;
         }
 
-        return $this->total() <= 0;
+        return $this->total <= 0;
     }
 
     /**
