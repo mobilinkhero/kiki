@@ -109,7 +109,7 @@
 
                                 <!-- Actions -->
                                 <div class="mt-auto space-y-2">
-                                    <form action="{{ tenant_route('tenant.addons.purchase', $addon->slug) }}" method="POST">
+                                    <form action="{{ tenant_route('tenant.addons.purchase', [$addon->slug]) }}" method="POST">
                                         @csrf
                                         <x-button.primary type="submit" class="w-full">
                                             <x-heroicon-m-shopping-cart class="w-4 h-4 mr-2" />
@@ -117,7 +117,7 @@
                                         </x-button.primary>
                                     </form>
 
-                                    <a href="{{ tenant_route('tenant.addons.show', $addon->slug) }}"
+                                    <a href="{{ tenant_route('tenant.addons.show', [$addon->slug]) }}"
                                         class="block text-sm text-center text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300">
                                         {{ t('View Details') }}
                                     </a>
