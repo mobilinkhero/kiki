@@ -233,14 +233,6 @@ Route::middleware(['auth', TenantMiddleware::class, CheckTenantDeleted::class, E
                 Route::match(['get', 'post'], '/ipn', [\App\Http\Controllers\PaymentGateways\ApgPaymentController::class, 'handleIpn'])->name('ipn');
             });
 
-            // Addon Services (AI Credits, etc.)
-            Route::prefix('addons')->name('addons.')->group(function () {
-                Route::get('/', [\App\Http\Controllers\AddonServiceController::class, 'index'])->name('index');
-                Route::get('/{addon:slug}', [\App\Http\Controllers\AddonServiceController::class, 'show'])->name('show');
-                Route::post('/{addon}/purchase', [\App\Http\Controllers\AddonServiceController::class, 'purchase'])->name('purchase');
-                Route::get('/my/purchases', [\App\Http\Controllers\AddonServiceController::class, 'myPurchases'])->name('my-purchases');
-            });
-
             // manage campaign
             Route::get('/create', [ManageCampaigns::class, 'create'])->name('create');
             Route::post('campaign/store', [ManageCampaigns::class, 'store'])->name('store');
