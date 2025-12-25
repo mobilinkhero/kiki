@@ -133,8 +133,11 @@ Route::middleware(['auth', SanitizeInputs::class, AdminMiddleware::class, Ensure
         // Addon Services Management
         Route::prefix('addons')->name('addons.')->group(function () {
             Route::get('/', \App\Livewire\Admin\Addon\AddonList::class)->name('index');
-            Route::get('/create', \App\Livewire\Admin\Addon\AddonCreator::class)->name('create');
-            Route::get('/{addonId}/edit', \App\Livewire\Admin\Addon\AddonCreator::class)->name('edit');
+            Route::get('/create', [\App\Http\Controllers\Admin\AddonServiceController::class, 'create'])->name('create');
+            Route::post('/', [\App\Http\Controllers\Admin\AddonServiceController::class, 'store'])->name('store');
+            Route::get('/{addon}/edit', [\App\Http\Controllers\Admin\AddonServiceController::class, 'edit'])->name('edit');
+            Route::put('/{addon}', [\App\Http\Controllers\Admin\AddonServiceController::class, 'update'])->name('update');
+            Route::delete('/{addon}', [\App\Http\Controllers\Admin\AddonServiceController::class, 'destroy'])->name('destroy');
         });
 
         Route::get('login-as/{id}', [AuthenticatedSessionController::class, 'login_as'])->name('login.as');

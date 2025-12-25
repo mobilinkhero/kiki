@@ -451,11 +451,6 @@ class Invoice extends BaseModel
             'applied_at' => now()->toISOString(),
         ];
 
-        // Recalculate total: subtotal + tax - discount
-        $subtotal = $this->subTotal();
-        $tax = $this->getTax();
-        $this->total = max(0, $subtotal + $tax - $discountAmount);
-
         $this->save();
     }
 
@@ -572,12 +567,8 @@ class Invoice extends BaseModel
     /**
      * Format any amount with the invoice's currency.
      */
-    public function formatAmount(?float $amount): string
+    public function formatAmount(float $amount): string
     {
-        if ($amount === null) {
-            return number_format(0, 2);
-        }
-
         if (!$this->relationLoaded('currency') || !$this->currency) {
             return number_format($amount, 2); // Fallback format
         }
@@ -596,7 +587,7 @@ class Invoice extends BaseModel
             return false;
         }
 
-        return $this->total <= 0;
+        return $this->total() <= 0;
     }
 
     /**
