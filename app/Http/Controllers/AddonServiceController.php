@@ -37,8 +37,10 @@ class AddonServiceController extends Controller
     /**
      * Show single addon details
      */
-    public function show(AddonService $addon)
+    public function show(string $addon)
     {
+        $addon = AddonService::where('slug', $addon)->firstOrFail();
+
         if (!$addon->is_active) {
             abort(404);
         }
@@ -60,8 +62,10 @@ class AddonServiceController extends Controller
     /**
      * Purchase an addon
      */
-    public function purchase(Request $request, AddonService $addon)
+    public function purchase(Request $request, string $addon)
     {
+        $addon = AddonService::where('slug', $addon)->firstOrFail();
+
         if (!$addon->is_active) {
             return redirect()->back()->with('error', 'This addon is not available.');
         }
