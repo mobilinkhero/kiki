@@ -87,6 +87,15 @@ return [
                     'active_routes' => ['admin.credit-management.*'],
                     'visible_when' => 'App\Services\Sidebar\SidebarVisibilityService::isAdmin',
                 ],
+                'addon_services' => [
+                    'type' => 'item',
+                    'label' => 'addon_services',
+                    'route' => 'admin.addons.index',
+                    'icon' => null,
+                    'permission' => null,
+                    'order' => 5,
+                    'active_routes' => ['admin.addons.*'],
+                ],
             ],
         ],
 

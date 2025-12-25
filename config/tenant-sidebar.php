@@ -94,6 +94,15 @@ return [
                     'order' => 2,
                     'active_routes' => ['tenant.invoices', 'tenant.invoices.*'],
                 ],
+                'addon_services' => [
+                    'type' => 'item',
+                    'label' => 'addon_services',
+                    'route' => 'tenant.addons.index',
+                    'icon' => 'heroicon-o-shopping-cart',
+                    'permission' => null,
+                    'order' => 3,
+                    'active_routes' => ['tenant.addons.*'],
+                ],
             ],
         ],
 
