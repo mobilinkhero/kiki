@@ -70,10 +70,10 @@ final class InvoiceTable extends PowerGridComponent
         return PowerGrid::fields()
             ->add('row_num')
             ->add('id')
-            ->add('invoice_number', fn ($row) => $row->invoice_number ?? format_draft_invoice_number())
-            ->add('created_at_formatted', fn ($invoice) => \Carbon\Carbon::parse($invoice->created_at)->format('M j, Y'))
+            ->add('invoice_number', fn($row) => $row->invoice_number ?? format_draft_invoice_number())
+            ->add('created_at_formatted', fn($invoice) => \Carbon\Carbon::parse($invoice->created_at)->format('M j, Y'))
             ->add('title_description', function ($invoice) {
-                return $invoice->title.($invoice->description ? ' <span class="text-slate-500" data-tippy-content="'.e($invoice->description).'">- '.e(truncate_text($invoice->description, 30)).'</span>' : '');
+                return $invoice->title . ($invoice->description ? ' <span class="text-slate-500" data-tippy-content="' . e($invoice->description) . '">- ' . e(truncate_text($invoice->description, 30)) . '</span>' : '');
             })
             ->add('status_badge', function ($invoice) {
                 if ($invoice->status === 'paid') {
@@ -87,12 +87,12 @@ final class InvoiceTable extends PowerGridComponent
                 }
 
                 return '<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-800/50 text-gray-800 dark:text-gray-300">
-                    <span class="h-1.5 w-1.5 bg-gray-400 rounded-full mr-1.5 inline-block"></span>'.e(ucfirst($invoice->status)).'
+                    <span class="h-1.5 w-1.5 bg-gray-400 rounded-full mr-1.5 inline-block"></span>' . e(ucfirst($invoice->status)) . '
                 </span>';
             })
 
             ->add('total_amount', function ($row) {
-                return $row->formatAmount($row->total_amount);
+                return $row->formatAmount($row->total_amount ?? 0.0);
             })
 
             ->add('formatted_amount', function ($invoice) {
@@ -133,7 +133,7 @@ final class InvoiceTable extends PowerGridComponent
             Column::make('Total (With Tax)', 'formatted_amount'),
 
             Column::action('Actions')
-                ->hidden(! checkPermission('tenant.invoices.view')),
+                ->hidden(!checkPermission('tenant.invoices.view')),
         ];
     }
 
