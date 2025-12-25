@@ -567,8 +567,12 @@ class Invoice extends BaseModel
     /**
      * Format any amount with the invoice's currency.
      */
-    public function formatAmount(float $amount): string
+    public function formatAmount(?float $amount): string
     {
+        if ($amount === null) {
+            return number_format(0, 2);
+        }
+
         if (!$this->relationLoaded('currency') || !$this->currency) {
             return number_format($amount, 2); // Fallback format
         }
