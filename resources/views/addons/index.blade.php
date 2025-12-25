@@ -74,14 +74,16 @@
                                             </h3>
                                         </div>
 
-                                        <form action="{{ route('tenant.addons.purchase', ['addon' => $addon->slug]) }}" method="POST">
+                                        <form action="{{ tenant_route('tenant.addons.purchase', ['addon' => $addon->slug]) }}"
+                                            method="POST">
                                             @csrf
                                             <button type="submit" class="btn btn-primary w-100">
                                                 <i class="fas fa-shopping-cart me-2"></i>Purchase Now
                                             </button>
                                         </form>
 
-                                        <a href="{{ route('tenant.addons.show', $addon->slug) }}" class="btn btn-link btn-sm mt-2">
+                                        <a href="{{ tenant_route('tenant.addons.show', ['addon' => $addon->slug]) }}"
+                                            class="btn btn-link btn-sm mt-2">
                                             View Details
                                         </a>
                                     </div>
