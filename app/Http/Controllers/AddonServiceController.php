@@ -74,15 +74,22 @@ class AddonServiceController extends Controller
             return redirect()->back()->with('error', 'This addon is not available.');
         }
 
-        // Create invoice (using only fields that exist in current schema)
+        // Create invoice
         $invoice = Invoice::create([
             'tenant_id' => tenant_id(),
             'invoice_number' => 'ADDON-' . time() . '-' . strtoupper(substr(md5(uniqid()), 0, 6)),
             'type' => 'addon_service',
-            'title' => $addon->name,
+            'total' => $addon->price,
             'currency_id' => 1, // PKR
             'status' => Invoice::STATUS_NEW,
-            'description' => "Addon: {$addon->name} - {$addon->credit_amount} credits + {$addon->bonus_amount} bonus",
+            'metadata' => [
+                'addon_service_id' => $addon->id,
+                'addon_name' => $addon->name,
+                'addon_type' => $addon->type,
+                'credit_amount' => $addon->credit_amount,
+                'bonus_amount' => $addon->bonus_amount,
+                'user_id' => Auth::id(), // Store in metadata instead
+            ],
         ]);
 
         // Create purchase record (pending until payment)
@@ -98,9 +105,9 @@ class AddonServiceController extends Controller
         ]);
 
         // Redirect to payment gateway (APG)
-        return redirect()->to(tenant_route('tenant.payment.apg.checkout', [
+        return redirect()->route('tenant.payment.apg.checkout', [
             'invoice' => $invoice->id
-        ]));
+        ]);
     }
 
     /**
