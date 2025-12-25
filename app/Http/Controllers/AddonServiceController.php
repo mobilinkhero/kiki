@@ -65,7 +65,7 @@ class AddonServiceController extends Controller
     /**
      * Purchase an addon
      */
-    public function purchase(Request $request, string $addon)
+    public function purchase(Request $request, string $subdomain, string $addon)
     {
         // Query from central database since addons are global
         $addon = AddonService::on('mysql')->where('slug', $addon)->firstOrFail();
