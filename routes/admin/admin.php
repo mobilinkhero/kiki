@@ -131,14 +131,13 @@ Route::middleware(['auth', SanitizeInputs::class, AdminMiddleware::class, Ensure
         });
 
         // Addon Services Management
-        Route::prefix('addons')->name('addons.')->controller(\App\Http\Controllers\Admin\AddonServiceController::class)->group(function () {
-            Route::get('/', 'index')->name('index');
-            Route::get('/create', 'create')->name('create');
-            Route::post('/', 'store')->name('store');
-            Route::get('/{addon}/edit', 'edit')->name('edit');
-            Route::put('/{addon}', 'update')->name('update');
-            Route::delete('/{addon}', 'destroy')->name('destroy');
-            Route::post('/{addon}/toggle-active', 'toggleActive')->name('toggle-active');
+        Route::prefix('addons')->name('addons.')->group(function () {
+            Route::get('/', \App\Livewire\Admin\Addon\AddonList::class)->name('index');
+            Route::get('/create', [\App\Http\Controllers\Admin\AddonServiceController::class, 'create'])->name('create');
+            Route::post('/', [\App\Http\Controllers\Admin\AddonServiceController::class, 'store'])->name('store');
+            Route::get('/{addon}/edit', [\App\Http\Controllers\Admin\AddonServiceController::class, 'edit'])->name('edit');
+            Route::put('/{addon}', [\App\Http\Controllers\Admin\AddonServiceController::class, 'update'])->name('update');
+            Route::delete('/{addon}', [\App\Http\Controllers\Admin\AddonServiceController::class, 'destroy'])->name('destroy');
         });
 
         Route::get('login-as/{id}', [AuthenticatedSessionController::class, 'login_as'])->name('login.as');
