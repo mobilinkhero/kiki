@@ -130,10 +130,21 @@ Route::middleware(['auth', SanitizeInputs::class, AdminMiddleware::class, Ensure
             Route::post('/{id}/reject', 'reject')->name('reject');
         });
 
+        // Addon Services Management
+        Route::prefix('addons')->name('addons.')->controller(\App\Http\Controllers\Admin\AddonServiceController::class)->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::get('/create', 'create')->name('create');
+            Route::post('/', 'store')->name('store');
+            Route::get('/{addon}/edit', 'edit')->name('edit');
+            Route::put('/{addon}', 'update')->name('update');
+            Route::delete('/{addon}', 'destroy')->name('destroy');
+            Route::post('/{addon}/toggle-active', 'toggleActive')->name('toggle-active');
+        });
+
         Route::get('login-as/{id}', [AuthenticatedSessionController::class, 'login_as'])->name('login.as');
 
     });
 
-require __DIR__.'/system-settings.php';
-require __DIR__.'/website-settings.php';
-require __DIR__.'/modules.php';
+require __DIR__ . '/system-settings.php';
+require __DIR__ . '/website-settings.php';
+require __DIR__ . '/modules.php';

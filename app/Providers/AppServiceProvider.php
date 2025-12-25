@@ -75,6 +75,9 @@ class AppServiceProvider extends ServiceProvider
         $this->registerLivewireMacros();
         $this->configureTimezoneAndDateFormats();
 
+        // Register observers
+        \App\Models\Invoice::observe(\App\Observers\InvoiceObserver::class);
+
         do_action('globally_registration');
     }
 
