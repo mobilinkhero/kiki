@@ -39,7 +39,7 @@ class AddonServiceController extends Controller
     /**
      * Show single addon details
      */
-    public function show(string $addon)
+    public function show(string $subdomain, string $addon)
     {
         // Query from central database since addons are global
         $addon = AddonService::on('mysql')->where('slug', $addon)->firstOrFail();
