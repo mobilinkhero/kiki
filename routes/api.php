@@ -124,6 +124,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // Chat management
     Route::prefix('chats')->group(function () {
         Route::get('/', [ChatController::class, 'index']);
+        Route::get('/unread-count', [ChatController::class, 'unreadCount']); // NEW: Get total unread count
         Route::get('/search', [ChatController::class, 'searchChats']); // NEW: Search all chats
         Route::get('/{id}/messages', [ChatController::class, 'messages']);
         Route::post('/{id}/send', [ChatController::class, 'sendMessage']); // NEW: Send message

@@ -54,7 +54,7 @@ class WebhookController extends Controller
 
         try {
             // Verify webhook signature (in production)
-            if (! $this->verifyWebhookSignature($request)) {
+            if (!$this->verifyWebhookSignature($request)) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Webhook signature verification failed',
@@ -63,7 +63,7 @@ class WebhookController extends Controller
 
             $payload = $request->all();
 
-            if (! isset($payload['object']) || $payload['object'] !== 'whatsapp_business_account') {
+            if (!isset($payload['object']) || $payload['object'] !== 'whatsapp_business_account') {
                 return response()->json([
                     'success' => false,
                     'message' => 'Invalid webhook payload',
@@ -256,10 +256,69 @@ class WebhookController extends Controller
     private function handleMessageStatus(array $status, array $context, string $provider): void
     {
         $messageId = $status['id'] ?? null;
-        $statusType = $status['status'] ?? null;
+        $statusType = $status['status'] ?? null; // sent, delivered, read, failed
         $timestamp = $status['timestamp'] ?? null;
 
-        // Here you would typically update the message status in your database
+        if (!$messageId || !$statusType) {
+            \Log::warning('WhatsApp status update missing required fields', [
+                'status' => $status,
+                'context' => $context
+            ]);
+            return;
+        }
+
+        try {
+            // Find the message by WhatsApp message ID
+            // We need to check all tenant tables
+            $tenants = \App\Models\Tenant::all();
+
+            foreach ($tenants as $tenant) {
+                $subdomain = tenant_subdomain_by_tenant_id($tenant->id);
+
+                $message = \App\Models\Tenant\ChatMessage::fromTenant($subdomain)
+                    ->where('message_id', $messageId)
+                    ->where('tenant_id', $tenant->id)
+                    ->first();
+
+                if ($message) {
+                    // Update status based on type
+                    $updates = ['wa_status' => $statusType];
+
+                    if ($statusType === 'delivered' && !$message->delivered_at) {
+                        $updates['delivered_at'] = $timestamp ?
+                            \Carbon\Carbon::createFromTimestamp($timestamp) :
+                            now();
+                    } elseif ($statusType === 'read' && !$message->read_at) {
+                        $updates['read_at'] = $timestamp ?
+                            \Carbon\Carbon::createFromTimestamp($timestamp) :
+                            now();
+
+                        // Also set delivered_at if not already set
+                        if (!$message->delivered_at) {
+                            $updates['delivered_at'] = $updates['read_at'];
+                        }
+                    } elseif ($statusType === 'failed') {
+                        $updates['status'] = 'failed';
+                    }
+
+                    $message->update($updates);
+
+                    \Log::info('WhatsApp message status updated', [
+                        'message_id' => $messageId,
+                        'status' => $statusType,
+                        'tenant_id' => $tenant->id
+                    ]);
+
+                    break; // Found and updated, no need to check other tenants
+                }
+            }
+        } catch (\Exception $e) {
+            \Log::error('Failed to update WhatsApp message status', [
+                'message_id' => $messageId,
+                'status' => $statusType,
+                'error' => $e->getMessage()
+            ]);
+        }
     }
 
     /**

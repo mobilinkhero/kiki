@@ -61,6 +61,35 @@ class ChatController extends Controller
     }
 
     /**
+     * Get Total Unread Count
+     *
+     * Get the total number of unread messages across all chats.
+     *
+     * @authenticated
+     */
+    public function unreadCount(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if (!$user->tenant_id) {
+            return response()->json(['success' => false, 'message' => 'User is not associated with a tenant'], 403);
+        }
+
+        $subdomain = tenant_subdomain_by_tenant_id($user->tenant_id);
+
+        // Count all unread customer messages across all chats
+        $totalUnread = ChatMessage::fromTenant($subdomain)
+            ->where('tenant_id', $user->tenant_id)
+            ->where('is_read', false)
+            ->whereNull('staff_id') // Only count customer messages
+            ->count();
+
+        return response()->json([
+            'success' => true,
+            'unread_count' => $totalUnread
+        ]);
+    }
+
+    /**
      * Search Chats
      *
      * Search all chats by contact name, phone number, or message content.

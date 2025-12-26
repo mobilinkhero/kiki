@@ -45,6 +45,8 @@ class ChatMessage extends BaseModel
         'interaction_id' => 'int',
         'time_sent' => 'datetime',
         'is_read' => 'bool',
+        'delivered_at' => 'datetime',
+        'read_at' => 'datetime',
     ];
 
     protected $fillable = [
@@ -61,6 +63,9 @@ class ChatMessage extends BaseModel
         'type',
         'is_read',
         'ref_message_id',
+        'delivered_at',
+        'read_at',
+        'wa_status',
         'updated_at',
         'created_at',
     ];
@@ -72,7 +77,7 @@ class ChatMessage extends BaseModel
 
     public static function fromTenant(string $subdomain)
     {
-        return (new static)->setTable($subdomain.'_chat_messages');
+        return (new static)->setTable($subdomain . '_chat_messages');
     }
 
     public function chat()
