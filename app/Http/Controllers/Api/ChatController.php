@@ -76,6 +76,49 @@ class ChatController extends Controller
     }
 
     /**
+     * Get Single Chat
+     *
+     * Retrieve a single chat by ID with unread count.
+     *
+     * @authenticated
+     * @urlParam id integer required The ID of the chat.
+     */
+    public function show(Request $request, $id): JsonResponse
+    {
+        $user = $request->user();
+        if (!$user->tenant_id) {
+            return response()->json(['success' => false, 'message' => 'User is not associated with a tenant'], 403);
+        }
+
+        $subdomain = tenant_subdomain_by_tenant_id($user->tenant_id);
+
+        $chat = Chat::fromTenant($subdomain)
+            ->where('id', $id)
+            ->where('tenant_id', $user->tenant_id)
+            ->first();
+
+        if (!$chat) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Chat not found'
+            ], 404);
+        }
+
+        // Add unread count
+        $chat->unread_count = ChatMessage::fromTenant($subdomain)
+            ->where('interaction_id', $chat->id)
+            ->where('tenant_id', $user->tenant_id)
+            ->where('is_read', false)
+            ->whereNull('staff_id') // Only count customer messages
+            ->count();
+
+        return response()->json([
+            'success' => true,
+            'data' => $chat
+        ]);
+    }
+
+    /**
      * Get Total Unread Count
      *
      * Get the total number of unread messages across all chats.
