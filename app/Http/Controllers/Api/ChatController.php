@@ -26,6 +26,7 @@ class ChatController extends Controller
      * Retrieve a paginated list of chats/conversations.
      *
      * @authenticated
+     * @queryParam unread_only boolean Optional. If true, only return chats with unread messages.
      */
     public function index(Request $request): JsonResponse
     {
@@ -36,9 +37,23 @@ class ChatController extends Controller
 
         $subdomain = tenant_subdomain_by_tenant_id($user->tenant_id);
 
-        $chats = Chat::fromTenant($subdomain)
-            ->where('tenant_id', $user->tenant_id)
-            ->orderBy('last_msg_time', 'desc')
+        $query = Chat::fromTenant($subdomain)
+            ->where('tenant_id', $user->tenant_id);
+
+        // Filter for unread only if requested
+        if ($request->boolean('unread_only')) {
+            // Get chat IDs that have unread messages
+            $chatIdsWithUnread = ChatMessage::fromTenant($subdomain)
+                ->where('tenant_id', $user->tenant_id)
+                ->where('is_read', false)
+                ->whereNull('staff_id') // Only count customer messages
+                ->distinct()
+                ->pluck('interaction_id');
+
+            $query->whereIn('id', $chatIdsWithUnread);
+        }
+
+        $chats = $query->orderBy('last_msg_time', 'desc')
             ->paginate($request->input('per_page', 20));
 
         // Add unread count to each chat
